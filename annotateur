@@ -1,0 +1,798 @@
+library("Seurat")
+library("ggplot2")
+
+#upload file:
+
+AML_downsampled_ref_with_umap <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/Ref_annotation/AML_downsampled_ref_with_umap.rds")
+
+data <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/seurat_obj/PBMC-0804616FH-0703537FL_PBMC-0806629FH-0204189HL_PBMC-1500689HH-1104677FL_PBMC-9700916HH-1410331FL.drop.qc.adt.integ.clean.rds")
+
+ref2 <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/Ref_annotation/AML_downsampled_ref_fixed_with_umap.rds")
+
+getwd()
+
+features <- read.delim("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/Ref_annotation/matrix_files/features.tsv.gz",
+                       header = FALSE,
+                       sep = "\t")
+rownames(ref2) <- features$V2
+
+DimPlot(
+  ref2,
+  reduction = "umap",
+  group.by = "Cell.Type",
+  label = TRUE
+) 
+
+#umap
+
+
+data2 <- RunPCA(ref2, npc=50)
+
+ElbowPlot(ref2, ndims = 160)
+
+ref <- RunPCA(ref2, npcs = 50)
+
+ref <- FindNeighbors(ref, dims = 1:20)
+ref <- FindClusters(ref, resolution = 0.5)
+
+ref <- RunUMAP(ref, dims = 1:20)
+
+# Plot UMAP clusters
+DimPlot(ref, reduction = "umap", label = TRUE)
+
+# Plot UMAP cell types
+DimPlot(ref, reduction = "umap", group.by = "Cell.Type")
+
+
+#comparaison
+
+#annotator accuracy :
+
+set.seed(123)
+
+#utiliser la ref uniquement couper ça en train et test 
+cells <- colnames(ref2)
+train_cells <- sample(cells, size = 0.8 * length(cells))
+test_cells <- setdiff(cells, train_cells)
+
+train <- subset(ref2, cells = train_cells)
+test  <- subset(ref2, cells = test_cells)
+
+library("SingleR")
+
+pred_singler <- SingleR(
+  test = GetAssayData(test, assay = 'RNA', layer = "data"),
+  ref = GetAssayData(train, assay = 'RNA', layer = "data"),
+  labels = train$Cell.Type,
+  , de.method="wilcox", 
+  de.n=20
+)
+
+test$SingleR_pred <- pred_singler$labels
+
+library(scPred)
+
+# Renommer RNA en data
+test[["data"]] <- test[["RNA"]]
+train[["data"]] <- train[["RNA"]]
+DefaultAssay(test) <- "data"
+DefaultAssay(train) <- "data"
+# 2. On force la PCA à être associée à l'assay "data"
+# Même si elle a été calculée sur "RNA", on change son étiquette interne
+train@reductions$pca@assay.used <- "data"
+test@reductions$pca@assay.used <- "data"
+
+train <- getFeatureSpace(train, "Cell.Type")
+train <- trainModel(train)
+
+test <- scPredict(test, train)
+
+# prédictions dans :
+test$scpred_prediction
+
+library(scAnnoX)
+
+anno.tools <- c('scCATCH', 'SCINA','SingleR', 'Seurat',  'CHETAH','scSorter', 'sc.type', 'sciBet')
+marker.based <- c('scSorter', 'sc.type', 'scCATCH', 'SCINA') 
+
+scannoX_model <- lapply(anno.tools, function(tool) {
+    print(sprintf('Running %s...\n', tool))
+    bool.val <- ifelse(tool %in% marker.based, 'marker-based', 'refernce-based')
+    
+    tmp.obj <- autoAnnoTools(
+        test,
+        ref.obj = train,
+        ref.ctype = 'Cell.Type',
+        marker.lst = marker.lst.final,
+        method = tool,
+        select.marker = 'Seurat',
+        top.k = 30,
+        strategy = bool.val
+    ) 
+    tmp.obj@meta.data[, ncol(tmp.obj@meta.data)]
+}) %>% do.call(cbind, .) %>% `colnames<-`(anno.tools)
+
+test$scannoX_pred <- scannoX_model
+
+library(caret)
+
+# SingleR
+conf_singler <- confusionMatrix(
+  as.factor(test$SingleR_pred),
+  as.factor(test$Cell.Type)
+)
+
+# scPred
+conf_scpred <- confusionMatrix(
+  as.factor(test$scpred_prediction),
+  as.factor(test$Cell.Type)
+)
+
+# scannoX
+conf_scannoX <- confusionMatrix(
+  as.factor(test$scannoX_pred),
+  as.factor(test$Cell.Type)
+)
+
+print(conf_singler$overall["Accuracy"])
+print(conf_scpred$overall["Accuracy"])
+print(conf_scannoX$overall["Accuracy"])
+
+##singleR annotation :
+
+library("Seurat")
+library(SingleR)
+library(caret)
+library(patchwork)
+library("ggplot2")
+library('viridis')
+library('pheatmap')
+
+ref_mat  <- GetAssayData(ref2, layer = "data")
+test_mat <- GetAssayData(data, layer = "data")
+
+head(test_mat)
+head(ref_mat)
+
+common_genes <- intersect(rownames(ref_mat), rownames(test_mat))
+length(common_genes)
+#pct_ref  <- length(common_genes) / nrow(ref) * 100
+#pct_data <- length(common_genes) / nrow(data) * 100
+
+#pct_ref
+#pct_data
+
+pred <- SingleR(test = test_mat, ref = ref_mat, labels = ref2$Cell.Type, de.method="wilcox", de.n=20)
+colnames(pred)
+
+head(sort(table(pred$labels), decreasing=TRUE))
+table(pred$labels)
+head(pred$labels)
+
+pred$scores[1:10,]
+plotScoreHeatmap(pred)
+
+pred2 <- SingleR(test = test_mat, ref = ref_mat, labels = ref2$HSPC.Cell.Type, de.method="wilcox", de.n=20)
+
+colnames(pred2)
+table(pred2$labels)
+head(sort(table(pred2$labels), decreasing=TRUE))
+
+pred2$scores[1:10,]
+plotScoreHeatmap(pred2)
+
+#pred3 <- SingleR(test = test_mat, ref = ref_mat, labels = ref$HSPC.Cell.Type)
+#colnames(pred3)
+
+#head(sort(table(pred3$labels), decreasing=TRUE))
+
+common_genes <- intersect(rownames(ref_mat), rownames(test_mat))
+
+ref_mat  <- ref_mat[common_genes, ]
+test_mat <- test_mat[common_genes, ]
+
+#pred4 <- SingleR(
+#  test = test_mat,
+ # ref  = ref_mat,
+  #labels = ref$Cell.Type
+#)
+
+data$SingleR_main  <- pred$labels
+data$SingleR_fine  <- pred2$labels
+data@meta.data[["SingleR_main"]]
+data@meta.data[["SingleR_fine"]]
+
+options(ggrepel.max.overlaps = Inf)
+
+DimPlot(
+  data,
+  reduction = "umap",
+  group.by = "SingleR_main",
+  label = TRUE,
+  repel = TRUE
+) + theme_bw()
+
+DimPlot(
+  data,
+  reduction = "umap",
+  group.by = "SingleR_fine",
+  label = TRUE,
+  repel = TRUE
+) + theme_bw()
+
+#pred : cell.type
+Idents(data) <- "SingleR_main"
+
+markers_main <- FindAllMarkers(
+  data,
+  only.pos = TRUE,
+  min.pct = 0.25,
+  logfc.threshold = 0.25
+)
+
+#pred2 : hscp like
+Idents(data) <- "SingleR_fine"
+
+markers_fine <- FindAllMarkers(
+  data,
+  only.pos = TRUE,
+  min.pct = 0.25,
+  logfc.threshold = 0.25
+)
+
+markers_fine
+markers_main
+#write.csv(markers_main, "SingleR_main_markers.csv")
+#write.csv(markers_fine, "SingleR_fine_markers.csv")
+
+p1 <- DimPlot(
+  data,
+  reduction = "umap",
+  group.by = "SingleR_fine",
+  label = TRUE,
+  repel = TRUE
+) + ggtitle("SingleR")
+
+p2 <- DimPlot(
+  data,
+  reduction = "umap",
+  group.by = "predicted",
+  label = TRUE,
+  repel = TRUE
+) + ggtitle("Consensus (Julien)")
+
+p1
+
+conf_mat <- table(
+  SingleR = data$SingleR_main,
+  Consensus = data$predicted
+)
+
+conf_mat
+
+mean(data$SingleR_main == data$predicted)
+
+prop.table(conf_mat, margin = 2)
+
+# Sauvegarder l'objet 'data' qui contient maintenant singleR
+saveRDS(data, file = "data_annotated_final.rds")
+
+head(rownames(ref2),10)
+head(rownames(data),10)
+
+length(intersect(rownames(ref_mat), rownames(data)))
+head(intersect(rownames(ref_mat), rownames(data)),10)
+
+## scPred
+
+#devtools::install_github("immunogenomics/harmony")
+#devtools::install_github("powellgenomicslab/scPred")
+library("Seurat")
+library('scPred')
+library("magrittr")
+library("ggplot2")
+
+DefaultAssay(data) <- "RNA"
+DefaultAssay(ref2) <- "RNA"
+query <- data
+# 1. Create a duplicate of your RNA assay named "data"
+query[["data"]] <- query[["RNA"]]
+
+# 2. Set the Default Assay to this new "data" assay
+DefaultAssay(query) <- "data"
+
+class(query)
+DefaultAssay(query)
+
+cell_counts <- table(ref2$HSPC.Cell.Type)
+
+valid_types <- names(cell_counts[cell_counts >= 10]) #filtrer les celltype avec moins de 10 cells
+
+ref2_filtered <- subset(ref2, subset = HSPC.Cell.Type %in% valid_types)
+
+# create a scPred object stored in the @misc slot. This object will contained all required information to classify cells.
+ref_scpred1 <- getFeatureSpace(ref2, "Cell.Type")
+ref_scpred2 <- getFeatureSpace(ref2_filtered, "HSPC.Cell.Type")
+ref_scpred3 <- getFeatureSpace(ref2_filtered, "Cell.Type")
+
+Seurat::Assays(ref_scpred1)
+ref_common <- ref_scpred1[common_genes, ]
+ref_common2 <- ref_scpred2[common_genes, ]
+
+#train the classifiers for each cell, By default, scPred will use a support vector machine with a radial kernel.
+ref_scpred1 <- trainModel(ref_scpred1)
+ref_scpred2 <- trainModel(ref_scpred2)
+ref_scpred3 <- trainModel(ref_scpred3)
+ref_scpred4 <- trainModel(ref_common)
+ref_scpred5 <- trainModel(ref_common2)
+
+
+#Training probabilities for each cell in the reference data can be accessed
+get_probabilities(ref_scpred1) %>% head()
+get_probabilities(ref_scpred2) %>% head()
+get_probabilities(ref_scpred3) %>% head()
+get_probabilities(ref_scpred4) %>% head()
+get_probabilities(ref_scpred5) %>% head()
+
+# use the get_scpred method to retrieve the scPred object from the Seurat object. Shows : 
+# The number of cells
+# Number of features used to train the model
+# Prediction model (method)
+# Performance metrics
+
+get_scpred(ref_scpred1)
+get_scpred(ref_scpred2)
+get_scpred(ref_scpred3)
+get_scpred(ref_scpred4)
+get_scpred(ref_scpred5)
+
+#visualize the performance for each cell type:
+plot_probabilities(ref_scpred1)
+plot_probabilities(ref_scpred2)
+plot_probabilities(ref_scpred3)
+plot_probabilities(ref_scpred4)
+plot_probabilities(ref_scpred5)
+
+
+#An important requirement for classifying cells is using the same normalization method for both the reference and the query datasets.
+
+query1 <- scPredict(query, ref_scpred1)
+query2 <- scPredict(query, ref_scpred2)
+query3 <- scPredict(query, ref_scpred3)
+query4 <- scPredict(query, ref_scpred4)
+query5 <- scPredict(query, ref_scpred5)
+query6 <- scPredict(query, ref_scpred1, recompute_alignment = FALSE, threshold = 0.4)
+query7 <- scPredict(query, ref_scpred2, recompute_alignment = FALSE, threshold = 0.4)
+
+query1 <- RunUMAP(query1, reduction = "scpred", dims = 1:30)
+query2 <- RunUMAP(query2, reduction = "scpred", dims = 1:30)
+query3 <- RunUMAP(query3, reduction = "scpred", dims = 1:30)
+query4 <- RunUMAP(query4, reduction = "scpred", dims = 1:30)
+query5 <- RunUMAP(query5, reduction = "scpred", dims = 1:30)
+query6 <- RunUMAP(query6, reduction = "scpred", dims = 1:30)
+query7 <- RunUMAP(query7, reduction = "scpred", dims = 1:30)
+
+#plot the predicted labels for each cell type over the UMAP:
+DimPlot(query1, group.by = "scpred_prediction", label = TRUE, repel = TRUE) + scale_y_reverse() + scale_x_reverse() + coord_flip()
+
+DimPlot(query2, group.by = "scpred_prediction", label = TRUE, repel = TRUE)+ scale_y_reverse() + scale_x_reverse() + coord_flip()
+
+DimPlot(query3, group.by = "scpred_prediction", label = TRUE, repel = TRUE)+ scale_y_reverse() + scale_x_reverse() + coord_flip()
+
+DimPlot(query4, group.by = "scpred_prediction", label = TRUE, repel = TRUE)+ scale_y_reverse() + scale_x_reverse() + coord_flip()
+
+DimPlot(query5, group.by = "scpred_prediction", label = TRUE, repel = TRUE)+ scale_y_reverse() + scale_x_reverse() + coord_flip()
+
+DimPlot(query6, group.by = "scpred_prediction", label = TRUE, repel = TRUE)+ scale_y_reverse() + scale_x_reverse() + coord_flip()
+
+DimPlot(query7, group.by = "scpred_prediction", label = TRUE, repel = TRUE)+ scale_y_reverse() + scale_x_reverse() + coord_flip()
+colnames(query1@meta.data)
+
+#We can compare the results with the original labels:
+DimPlot(query1, group.by = "predicted", label = TRUE, repel = TRUE) + scale_y_reverse() + scale_x_reverse() + coord_flip()
+
+DimPlot(query2, group.by = "predicted", label = TRUE, repel = TRUE)+ scale_y_reverse() + scale_x_reverse() + coord_flip()
+
+DimPlot(query3, group.by = "predicted", label = TRUE, repel = TRUE)+ scale_y_reverse() + scale_x_reverse() + coord_flip()
+
+DimPlot(query4, group.by = "predicted", label = TRUE, repel = TRUE)
+
+DimPlot(query5, group.by = "predicted", label = TRUE, repel = TRUE)
+
+DimPlot(query6, group.by = "predicted", label = TRUE, repel = TRUE)+ scale_y_reverse() + scale_x_reverse() + coord_flip()
+
+DimPlot(query7, group.by = "predicted", label = TRUE, repel = TRUE)+ scale_y_reverse() + scale_x_reverse() + coord_flip()
+
+
+table(query1$scpred_prediction,
+      query1$consensus_predicted)
+
+mean(query1$scpred_prediction ==
+     query1$consensus_predicted)
+
+# Ajouter la prédiction de query1 (basée sur ref_scpred1)
+data$scpred_CellType_all <- query1$scpred_prediction
+
+# Ajouter la prédiction de query2 (basée sur ref_scpred2 : HSPC filtered)
+data$scpred_HSPC_filtered <- query2$scpred_prediction
+
+# Ajouter la prédiction de query3 (basée sur ref_scpred3 : Cell.Type filtered)
+data$scpred_CellType_filtered <- query3$scpred_prediction
+
+# Sauvegarder l'objet 'data' qui contient maintenant scpred1,2 et 3
+saveRDS(data, file = "data_annotated_final.rds")
+
+common_genes <- intersect(rownames(ref_scpred1), rownames(query1))
+length(common_genes)
+head(rownames(ref_scpred2))
+rownames(query1)
+pct_data <- length(common_genes) / nrow(data) * 100
+
+pct_data
+
+#nb : scpred entraine le model sur les variable features qui sont obtenu par pca et pas sur tous les genes de dataset (d'ou le 30% alors qu'on a plus de95% de gene communs total)
+
+## scAnnoX
+
+#tourne avec seurat4 for some reasons... =_= modifier le code directement pour remplacer slot par layer
+
+
+#install.packages("devtools")  
+# also need these package : 'SingleCellExperiment', 'scibetR', 'CHETAH', 'scmap', 'CelliD'
+#download zip modif les slots = par layer= save et install devtools::install("chemin d'acces vers le fichier annox modifier")
+
+library("Seurat")
+library("ggplot2")
+library(scAnnoX)
+library(SingleCellExperiment)
+
+# Import single cell profiles.
+data <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/seurat_obj/PBMC-0804616FH-0703537FL_PBMC-0806629FH-0204189HL_PBMC-1500689HH-1104677FL_PBMC-9700916HH-1410331FL.drop.qc.adt.integ.clean.rds")
+
+ref2 <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/Ref_annotation/AML_downsampled_ref_fixed_with_umap.rds")
+
+#rename row to have gene name instead of "features"
+features <- read.delim("ref_annotation/matrix_files/features.tsv.gz",
+                       header = FALSE,
+                       sep = "\t")
+rownames(ref2) <- features$V2
+
+#fusioner les layers parce que sinon : "Error in h(simpleError(msg, call)) : 
+#  error in evaluating the argument 'x' in selecting a method for function 'colnames<-': error in evaluating the argument 'args' in selecting a method for function 'do.call': GetAssayData doesn't work for multiple layers in v5 assay."
+# Convertir V4 -> V5
+#data[["RNA"]] <- as(data[["RNA"]], "Assay5")
+#ref2[["RNA"]] <- as(ref2[["RNA"]], "Assay5")
+
+# Maintenant, JoinLayers fonctionnera (si nécessaire) ou 
+# au moins scAnnoX reconnaîtra la structure
+#data <- JoinLayers(data)
+#ref2 <- JoinLayers(ref2)
+#si joinlayers modifier le code du fichier annaools pour mettre counts a la place de count if not don't touch anything
+#ps : ne pas oublier de retelechager le package apres modification 
+
+# Regardez ce qu'il y a dans l'objet
+Layers(data[["RNA"]])
+Layers(ref2[["RNA"]])
+
+# Ce test doit renvoyer "dgCMatrix" sans erreur
+test_mat <- GetAssayData(ref2, assay = "RNA", layer = "data")
+print(class(test_mat))
+
+#cell.type
+
+Idents(ref2) <- ref2$Cell.Type
+marker.lst <- findMarkerToolsForSc(ref2, to.list = TRUE, top.k = 30)
+
+# On ne garde que les gènes qui existent physiquement dans 'data'
+marker.lst.valid <- lapply(marker.lst, function(x) intersect(x, rownames(data)))
+
+# On compte combien il en reste par type
+counts <- sapply(marker.lst.valid, length)
+
+# On supprime les types qui ont 0 gènes (comme CMP)
+marker.lst.final <- marker.lst.valid[counts > 0]
+
+# Message pour confirmer
+message("Types conservés : ", paste(names(marker.lst.final), collapse = ", "))
+message("Types supprimés (0 gènes trouvés) : ", paste(names(counts)[counts == 0], collapse = ", "))
+
+anno.tools <- c('scCATCH', 'SCINA','SingleR', 'Seurat',  'CHETAH','scSorter', 'sc.type', 'sciBet' )
+marker.based <- c('scSorter', 'sc.type', 'scCATCH', 'SCINA')
+
+anno.res <- lapply(anno.tools, function(tool) {
+    print(sprintf('Running %s...\n', tool))
+    bool.val <- ifelse(tool %in% marker.based, 'marker-based', 'refernce-based')
+    
+    tmp.obj <- autoAnnoTools(
+        data,
+        ref.obj = ref2,
+        ref.ctype = 'Cell.Type',
+        marker.lst = marker.lst.final,
+        method = tool,
+        select.marker = 'Seurat',
+        top.k = 30,
+        strategy = bool.val
+    ) 
+    tmp.obj@meta.data[, ncol(tmp.obj@meta.data)]
+}) %>% do.call(cbind, .) %>% `colnames<-`(anno.tools)
+
+scAnnoX <- annoResult(anno.res)
+head(scAnnoX)
+
+acc <- apply(scAnnoX, 2, function(xx) sum(data$consensus_predicted == xx) / ncol(data))
+barplot(acc, las = 2 , col = rainbow(11))
+acc
+
+acc <- apply(scAnnoX, 2, function(xx) sum(data$predicted == xx) / ncol(data))
+barplot(acc, las = 2 , col = rainbow(11))
+acc
+
+acc <- apply(scAnnoX, 2, function(xx) sum(data$SingleR_main == xx) / ncol(data))
+barplot(acc, las = 2 , col = rainbow(11))
+acc
+
+acc <- apply(scAnnoX, 2, function(xx) sum(data$scpred_CellType_all == xx) / ncol(data))
+barplot(acc, las = 2 , col = rainbow(11))
+acc
+
+# 1. Vérifiez que le nombre de lignes correspond (doit être TRUE)
+nrow(scAnnoX) == ncol(data)
+
+# 2. Ajouter la colonne à l'objet Seurat
+# On utilise généralement la colonne 'scAnnoX' ou le vote majoritaire
+data$scAnnoX <- scAnnoX$scAnnoX # Ou simplement scAnnoX si c'est un vecteur
+
+p1 <- DimPlot(
+  data,
+  reduction = "umap",
+  group.by = "scAnnoX",
+  label = TRUE,
+  repel = TRUE
+) + ggtitle("scAnnoX")
+
+p2 <- DimPlot(
+  data,
+  reduction = "umap",
+  group.by = "consensus_predicted",
+  label = TRUE,
+  repel = TRUE
+) + ggtitle("Consensus (Julien)")
+
+p1 + p2
+
+# Sauvegarder l'objet 'data' qui contient maintenant scAnnoX
+saveRDS(data, file = "data_annotated_final.rds")
+
+#HSPC cell.type
+Idents(ref2) <- ref2$HSPC.Cell.Type
+marker.lst <- findMarkerToolsForSc(ref2, to.list = TRUE, top.k = 30)
+
+# 1. On ne garde que les gènes qui existent physiquement dans 'data'
+marker.lst.valid <- lapply(marker.lst, function(x) intersect(x, rownames(data)))
+
+# 2. On compte combien il en reste par type
+counts <- sapply(marker.lst.valid, length)
+
+# 3. On supprime les types qui ont 0 gènes (comme CMP)
+marker.lst.final <- marker.lst.valid[counts > 0]
+
+# 4. Message pour confirmer
+message("Types conservés : ", paste(names(marker.lst.final), collapse = ", "))
+message("Types supprimés (0 gènes trouvés) : ", paste(names(counts)[counts == 0], collapse = ", "))
+
+anno.tools <- c('SingleR', 'Seurat', 'sciBet', 'scmap', 'CHETAH', 'scSorter', 'sc.type','scCATCH', 'SCINA')
+marker.based <- c('scSorter', 'sc.type', 'scCATCH', 'SCINA')
+
+anno.res <- lapply(anno.tools, function(tool) {
+    print(sprintf('Running %s...\n', tool))
+    bool.val <- ifelse(tool %in% marker.based, 'marker-based', 'refernce-based')
+    
+    tmp.obj <- autoAnnoTools(
+        test.obj,
+        ref.obj = ref,
+        ref.ctype = 'HSPC.Cell.Type',
+        marker.lst = marker.lst.final,
+        method = tool,
+        select.marker = 'Seurat',
+        top.k = 30,
+        strategy = bool.val
+    ) 
+    tmp.obj@meta.data[, ncol(tmp.obj@meta.data)]
+}) %>% do.call(cbind, .) %>% `colnames<-`(anno.tools)
+
+scAnnoX <- annoResult(anno.res)
+head(scAnnoX)
+
+acc <- apply(scAnnoX, 2, function(xx) sum(data$HSPC.Cell.Type == xx) / ncol(data))
+barplot(acc, las = 2 , col = rainbow(11))
+
+#nb : compter 20min environ par cluster pour "findMarkerToolsForSc" =.=
+
+## comparaison umap
+
+p1 <- DimPlot(
+  data,
+  reduction = "umap",
+  group.by = "scAnnoX",
+  label = TRUE,
+  repel = TRUE
+) + ggtitle("scAnnoX")
+
+p2 <- DimPlot(
+  data,
+  reduction = "umap",
+  group.by = "SingleR_main",
+  label = TRUE,
+  repel = TRUE
+) + ggtitle("singleR")
+
+p1 + p2
+
+acc <- apply(scAnnoX, 2, function(xx) sum(data$SingleR_main == xx) / ncol(data))
+barplot(acc, las = 2 , col = rainbow(11))
+
+p3 <- DimPlot(
+  data,
+  reduction = "umap",
+  group.by = "scAnnoX",
+  label = TRUE,
+  repel = TRUE
+) + ggtitle("scAnnoX")
+
+p4 <- DimPlot(query1, 
+              group.by = "scpred_prediction", 
+              label = TRUE,
+              repel = TRUE
+              ) + scale_y_reverse() + scale_x_reverse() + coord_flip()
+
+p3 + p4
+
+acc <- apply(scAnnoX, 2, function(xx) sum(data$ref_scpred1 == xx) / ncol(data))
+barplot(acc, las = 2 , col = rainbow(11))
+
+# Liste des colonnes à comparer
+comparaison_cols <- c("consensus_predicted", "scAnnoX", "SingleR_main", "scpred_CellType_all")
+
+# Vérifiez que tout est présent
+# colnames(data@meta.data)
+library(patchwork)
+
+plots <- lapply(comparaison_cols, function(col) {
+  DimPlot(data, group.by = col, label = TRUE, repel = TRUE) + 
+    ggtitle(col) + 
+    NoLegend()
+})
+
+# Affiche les 4 UMAPs côte à côte
+wrap_plots(plots, ncol = 2)
+
+library(ggplot2)
+library(reshape2)
+
+# Comparaison Actinn vs scAnnoX
+ct_table <- table(data$consensus_predicted, data$scAnnoX)
+ct_prop <- prop.table(ct_table, margin = 1) # Proportions par ligne
+
+# Transformer en format long pour ggplot
+df_plot <- as.data.frame(ct_prop)
+colnames(df_plot) <- c("Actinn", "scAnnoX", "Proportion")
+
+ggplot(df_plot, aes(x = scAnnoX, y = Actinn, fill = Proportion)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "blue") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Concordance : Actinn vs scAnnoX")
+
+# Comparaison Actinn vs scpred
+ct_table <- table(data$consensus_predicted, data$scpred_CellType_all)
+ct_prop <- prop.table(ct_table, margin = 1) # Proportions par ligne
+
+# Transformer en format long pour ggplot
+df_plot <- as.data.frame(ct_prop)
+colnames(df_plot) <- c("Actinn", "scpred", "Proportion")
+
+ggplot(df_plot, aes(x = scpred, y = Actinn, fill = Proportion)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "blue") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Concordance : Actinn vs scPred")
+
+# Comparaison Actinn vs singleR
+ct_table <- table(data$consensus_predicted, data$SingleR_main)
+ct_prop <- prop.table(ct_table, margin = 1) # Proportions par ligne
+
+# Transformer en format long pour ggplot
+df_plot <- as.data.frame(ct_prop)
+colnames(df_plot) <- c("Actinn", "singleR", "Proportion")
+
+ggplot(df_plot, aes(x = singleR, y = Actinn, fill = Proportion)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "blue") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Concordance : Actinn vs singleR")
+
+library(mclust)
+ari_scannox <- adjustedRandIndex(data$consensus_predicted, data$scAnnoX)
+ari_singler <- adjustedRandIndex(data$consensus_predicted, data$SingleR_main)
+ari_scpred  <- adjustedRandIndex(data$consensus_predicted, data$scpred_CellType_all)
+
+message("ARI scAnnoX: ", ari_scannox)
+message("ARI SingleR: ", ari_singler)
+message("ARI scPred: ", ari_scpred)
+
+# création des colonnes de validation
+data$Check_scAnnoX <- data$scAnnoX == data$consensus_predicted
+data$Check_SingleR <- data$SingleR_main == data$consensus_predicted
+data$Check_scPred  <- data$scpred_CellType_all == data$consensus_predicted
+
+# transforme en "Match" / "Mismatch" 
+for(col in c("scAnnoX", "SingleR_main", "scpred_CellType_all")) {
+  
+  # On crée le nom de la nouvelle colonne de check
+  new_col_name <- paste0("Check_", col)
+  
+  # On compare les vecteurs de manière propre
+  # On utilise [[ , 1]] pour être sûr d'extraire le vecteur du data.frame
+  is_match <- data[[col, drop = TRUE]] == data[["consensus_predicted", drop = TRUE]]
+  
+  # On gère les NA (au cas où un outil n'a pas classé certaines cellules)
+  is_match[is.na(is_match)] <- FALSE
+  
+  # On assigne le résultat
+  data[[new_col_name]] <- ifelse(is_match, "Match", "Mismatch")
+}
+library(patchwork)
+
+p1 <- DimPlot(data, group.by = "Check_scAnnoX", cols = c("Match" = "forestgreen", "Mismatch" = "firebrick1")) + ggtitle("scAnnoX vs Actinn")
+p2 <- DimPlot(data, group.by = "Check_SingleR", cols = c("Match" = "forestgreen", "Mismatch" = "firebrick1")) + ggtitle("SingleR vs Actinn")
+p3 <- DimPlot(data, group.by = "Check_scPred",  cols = c("Match" = "forestgreen", "Mismatch" = "firebrick1")) + ggtitle("scPred vs Actinn")
+
+p1
+p2
+p3
+
+# scAnnoX
+library(pheatmap)
+
+tab <- table(data$consensus_predicted, data$scAnnoX)
+# Normalisation par ligne pour voir le % de transfert
+tab_prop <- prop.table(tab, margin = 1) 
+
+pheatmap(tab_prop, 
+         cluster_rows = FALSE, 
+         cluster_cols = FALSE, 
+         display_numbers = TRUE,
+         main = "Où sont les désaccords ? (Lignes: Actinn, Col: scAnnoX)",
+         color = colorRampPalette(c("white", "red"))(100))
+
+# scpred
+library(pheatmap)
+
+tab <- table(data$consensus_predicted, data$scpred_CellType_all)
+# Normalisation par ligne pour voir le % de transfert
+tab_prop <- prop.table(tab, margin = 1) 
+
+pheatmap(tab_prop, 
+         cluster_rows = FALSE, 
+         cluster_cols = FALSE, 
+         display_numbers = TRUE,
+         main = "Où sont les désaccords ? (Lignes: Actinn, Col: scPred)",
+         color = colorRampPalette(c("white", "red"))(100))
+
+# scpred
+library(pheatmap)
+
+tab <- table(data$consensus_predicted, data$SingleR_main)
+# Normalisation par ligne pour voir le % de transfert
+tab_prop <- prop.table(tab, margin = 1) 
+
+pheatmap(tab_prop, 
+         cluster_rows = FALSE, 
+         cluster_cols = FALSE, 
+         display_numbers = TRUE,
+         main = "Où sont les désaccords ? (Lignes: Julien, Col: singleR)",
+         color = colorRampPalette(c("white", "red"))(100))
+

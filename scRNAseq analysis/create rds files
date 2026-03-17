@@ -1,0 +1,12 @@
+#faut créer un fichier rds par patient et conditions et les fusioner ensuite pour pool a et b et essayer de fusioner les 2 pool ensuite
+library(Seurat)
+library(dplyr)
+library(ggplot2)
+
+data <- Read10X(data.dir = "data/") # chemin vers la data
+seu <- CreateSeuratObject(
+  counts = data,
+  project = "AML",
+  min.cells = 3,
+  min.features = 200
+)

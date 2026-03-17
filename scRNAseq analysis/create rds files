@@ -1,3 +1,5 @@
+#script to create and merge RDS files for analysis
+#Create RDS files for each patient and condition, and merge them for pools A and B.
 #faut créer un fichier rds par patient et conditions et les fusioner ensuite pour pool a et b et essayer de fusioner les 2 pool ensuite
 library(Seurat)
 library(dplyr)

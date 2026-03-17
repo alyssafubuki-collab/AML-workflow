@@ -1,0 +1,183 @@
+#cheatsheet seurat :
+
+#raccourci clavier : 
+# "<-"  : ALT + « - »
+#" %>%"  :  CTRL + SHIFT + M
+
+#1 Load Data — from 10x Genomics or other formats.
+#2 QC — filter low-quality cells and high mitochondrial content.
+#3 Normalization — log-normalize counts.
+#4 HVG Selection — keep most informative genes.
+#5 Scaling & PCA — prepare for clustering.
+#6 Clustering — Louvain algorithm via FindClusters().
+#7 UMAP — visualize clusters in 2D.
+#8 Marker Detection — find genes defining each cluster.
+#9 Annotation — assign biological meaning using known markers.
+
+#setup:
+library(Seurat)
+library(dplyr)
+library(ggplot2)
+
+#1.charger les donnes : 
+
+#10X:
+
+data <- Read10X(data.dir = "data/") # chemin vers la data
+seu <- CreateSeuratObject(
+  counts = data,
+  project = "AML",
+  min.cells = 3,
+  min.features = 200
+)
+
+#2.Quality control (QC)
+
+#calcul % mitochondro
+
+seu[["percent.mt"]] <- PercentageFeatureSet(seu, pattern = "^MT-")
+
+#visualisation QC
+
+VlnPlot(seu, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"))
+FeatureScatter(seu, "nCount_RNA", "percent.mt")
+
+#Filtrage des cellules
+
+seu <- subset(
+  seu,
+  subset = nFeature_RNA > 300 &
+    nFeature_RNA < 6000 &
+    percent.mt < 10
+)
+
+#ou
+# Filter cells
+#seurat_obj <- subset(seurat_obj, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+
+#3. Normalisation & features variables
+
+seu <- NormalizeData(seu) 
+#“LogNormalize”: Feature counts for each cell are divided by the total counts for that cell and multiplied by the scale.factor. This is then natural-log transformed using log1p
+seu <- FindVariableFeatures(seu, nfeatures = 2000)
+#“vst”: First, fits a line to the relationship of log(variance) and log(mean) using local polynomial regression (loess). Then standardizes the feature values using the observed mean and expected variance (given by the fitted line). Feature variance is then calculated on the standardized values after clipping to a maximum (see clip.max parameter).
+
+#4. Scalling and PCA
+
+seu <- ScaleData(seu)
+#Use a linear model or generalized linear model (poisson, negative binomial) for the regression. Options are 'linear' (default), 'poisson', and 'negbinom'
+seu <- RunPCA(seu, features = VariableFeatures(seu))
+
+#choisir le nbr de PC
+
+ElbowPlot(seu)
+
+# Visualize PCA
+VizDimLoadings(seu, dims = 1:2, reduction = "pca")
+DimPlot(seu, reduction = "pca")
+
+#5. UMAP & clustering
+
+seu <-  FindNeighbors(seu, dim = 1:30)
+seu <- FindClusters(seu, resolution = 0.4)
+seu <- RunUMAP(seu, dims = 1:30)
+DimPlot(seu, reduction = "umap", label = TRUE)
+
+#visualisation
+
+DimPlot(seu, label = TRUE)
+DimPlot(seu, group.by = "seurat_clusters")
+
+#6. genes marqueurs
+
+#tous les clusters
+
+#"wilcox" : Identifies differentially expressed genes between two groups of cells using a Wilcoxon Rank Sum test (default); will use a fast implementation by Presto if installed
+markers <-  FindAllMarkers(
+  seu,
+  only.pos = TRUE,
+  min.pct = 0.25,
+  logfc.threshold = 0.25
+)
+
+#top marqueurs par cluster
+
+top10 <- markers %>% 
+  group_by(cluster) %>% 
+  top_n(10, avg_log2FC)
+
+#7. visualiser les marqueurs
+
+#heatmap
+
+DoHeatmap(seu, features = top10$gene)
+
+#UMAP par gene
+
+FeaturePlot(seu, features = c("CD34", "MPO", "HOXA9"))
+
+#DotPlot (tres bien pour la notation)
+
+DotPlot(seu, features = c("FLT3", "NPM1", "STAT5A")) +
+  RotatedAxis()
+
+#8. Annotation des clusters
+
+#new.ids <- c(
+  "HSc-like",
+  "Myeloid",
+  "Progenitor",
+  "Cycling")
+
+#names(new.ids) <- levels(seu)
+#seu <- RenameIdents(seu, new.ids)
+
+#DimPlot(seu, label = TRUE)
+
+#9.Analyse differentielle (CR vs NR)
+
+#comparaison globale
+
+Idents(seu) <- "reponse"
+de_resp <- FindMarkers(
+  seu,
+  ident.1 = "NR",
+  ident.2 = "CR"
+)
+
+#par cluster
+
+de_cluster <- FindMarkers(
+  seu,
+  ident.1 = "NR",
+  ident.2 = "CR",
+  subset.ident = "HSC-like"
+)
+
+#10. scores de voies biologiques
+
+#addmodulescore (stat5 exemple)
+
+stat5_genes <- c("STAT5A", "STAT5B", "S0CS2", "PIM1")
+
+seu <- AddModuleScore(
+  seu,
+  features = list(stat5_genes),
+  name = "STAT5_score"
+)
+
+#visualisation
+
+FeaturePlot(seu, features = "STAT5_score1")
+Vlnplot(seu, features = "STAT5_score1", group.by = "response")
+
+#11. comparaison BM vs PB / pre vs post
+
+DimPlot(seu, group.by = "compartment")
+DimPlot(seu, group.by = "timepoint")
+
+VlnPlot(seu, features = "STAT5_score1", group.by = "compartment")
+
+#12. sauvegarde
+
+saveRDS(seu, file = "AML_seurat_object.rds")

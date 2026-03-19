@@ -1,0 +1,512 @@
+---
+title: "scRNA seq AML 2ndaire"
+format: html
+editor: visual
+---
+
+# Setting up environment:
+
+```{r}
+# Clean environment
+rm(list = ls(all.names = TRUE)) # will clear all objects including hidden objects
+gc() # free up memory and report the memory usage
+options(max.print = .Machine$integer.max, scipen = 999, stringsAsFactors = F, dplyr.summarise.inform = F) # avoid truncated output in R console and scientific notation
+```
+
+```{r}
+# Loading relevant libraries 
+library(tidyverse) # includes ggplot2, for data visualisation. dplyr, for data manipulation.
+library(Seurat)
+```
+
+```{r}
+# Set input path
+set.seed(42)
+```
+
+#import data
+```{r}
+# Import data 
+#poolA
+#020_010_D
+inputMatrixDirOB1 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolA/poolA_output/outs/per_sample_outs/020_010_D/count/sample_raw_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB1)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB1))
+}
+
+cat("Reading 10X matrix...\n")
+OB1 <- Read10X(
+  data.dir = inputMatrixDirOB1,
+  gene.column = 1,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = FALSE,
+  strip.suffix = FALSE
+)
+
+str(OB1) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB1 <- OB1$`Gene Expression`
+
+#020_010_F
+inputMatrixDirOB2 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolA/poolA_output/outs/per_sample_outs/020_010_F/count/sample_raw_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB2)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB2))
+}
+
+cat("Reading 10X matrix...\n")
+OB2 <- Read10X(
+  data.dir = inputMatrixDirOB2,
+  gene.column = 1,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = FALSE,
+  strip.suffix = FALSE
+)
+
+str(OB2) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB2 <- OB2$`Gene Expression`
+
+#042_025_D
+inputMatrixDirOB3 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolA/poolA_output/outs/per_sample_outs/042_025_D/count/sample_raw_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB3)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB3))
+}
+
+cat("Reading 10X matrix...\n")
+OB3 <- Read10X(
+  data.dir = inputMatrixDirOB3,
+  gene.column = 1,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = FALSE,
+  strip.suffix = FALSE
+)
+
+str(OB3) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB3 <- OB3$`Gene Expression`
+
+#042_025_F
+inputMatrixDirOB4 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolA/poolA_output/outs/per_sample_outs/042_025_F/count/sample_raw_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB4)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB4))
+}
+
+cat("Reading 10X matrix...\n")
+OB4 <- Read10X(
+  data.dir = inputMatrixDirOB4,
+  gene.column = 1,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = FALSE,
+  strip.suffix = FALSE
+)
+
+str(OB4) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB4 <- OB4$`Gene Expression`
+```
+
+```{r}
+# Import data 
+#poolB
+#008_034_D
+
+inputMatrixDirOB5 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolB/poolB_output/outs/per_sample_outs/008_034_D/count/sample_raw_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB5)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB5))
+}
+
+cat("Reading 10X matrix...\n")
+OB5 <- Read10X(
+  data.dir = inputMatrixDirOB5,
+  gene.column = 1,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = FALSE,
+  strip.suffix = FALSE
+)
+
+str(OB5) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB5 <- OB5$`Gene Expression`
+
+#008_034_F
+inputMatrixDirOB6 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolB/poolB_output/outs/per_sample_outs/008_034_F/count/sample_raw_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB6)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB6))
+}
+
+cat("Reading 10X matrix...\n")
+OB6 <- Read10X(
+  data.dir = inputMatrixDirOB6,
+  gene.column = 1,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = FALSE,
+  strip.suffix = FALSE
+)
+
+str(OB6) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB6 <- OB6$`Gene Expression`
+
+
+#095_017_D
+inputMatrixDirOB7 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolB/poolB_output/outs/per_sample_outs/095_017_D/count/sample_raw_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB7)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB7))
+}
+
+cat("Reading 10X matrix...\n")
+OB7 <- Read10X(
+  data.dir = inputMatrixDirOB7,
+  gene.column = 1,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = FALSE,
+  strip.suffix = FALSE
+)
+
+str(OB7) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB7 <- OB7$`Gene Expression`
+
+
+#095_017_F
+inputMatrixDirOB8 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolB/poolB_output/outs/per_sample_outs/095_017_F/count/sample_raw_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB8)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB8))
+}
+
+cat("Reading 10X matrix...\n")
+OB8 <- Read10X(
+  data.dir = inputMatrixDirOB8,
+  gene.column = 1,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = FALSE,
+  strip.suffix = FALSE
+)
+
+str(OB8) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB8 <- OB8$`Gene Expression`
+```
+
+#create seurat object
+```{r}
+#poolA
+OB1 <- CreateSeuratObject(
+  counts = cts_OB1,
+  project = "AML_OB1",
+  min.cells = 3,
+  min.features = 200
+)
+
+saveRDS(OB1, file = "020_010_D.rds")
+
+OB2 <- CreateSeuratObject(
+  counts = cts_OB2,
+  project = "AML_OB2",
+  min.cells = 3,
+  min.features = 200
+)
+
+saveRDS(OB2, file = "020_010_F.rds")
+
+OB3 <- CreateSeuratObject(
+  counts = cts_OB3,
+  project = "AML_OB3",
+  min.cells = 3,
+  min.features = 200
+)
+
+saveRDS(OB3, file = "042_025_D.rds")
+
+OB4 <- CreateSeuratObject(
+  counts = cts_OB4,
+  project = "AML_OB4",
+  min.cells = 3,
+  min.features = 200
+)
+
+saveRDS(OB4, file = "042_025_F.rds")
+
+```
+
+```{r}
+#poolB
+OB5 <- CreateSeuratObject(
+  counts = cts_OB5,
+  project = "AML_OB5",
+  min.cells = 3,
+  min.features = 200
+)
+
+saveRDS(OB5, file = "008_034_D.rds")
+
+OB6 <- CreateSeuratObject(
+  counts = cts_OB6,
+  project = "AML_OB6",
+  min.cells = 3,
+  min.features = 200
+)
+
+saveRDS(OB6, file = "008_034_F.rds")
+
+OB7 <- CreateSeuratObject(
+  counts = cts_OB7,
+  project = "AML_OB7",
+  min.cells = 3,
+  min.features = 200
+)
+
+saveRDS(OB7, file = "095_017_D.rds")
+
+OB8 <- CreateSeuratObject(
+  counts = cts_OB8,
+  project = "AML_OB8",
+  min.cells = 3,
+  min.features = 200
+)
+
+saveRDS(OB8, file = "095_017_F.rds")
+
+```
+
+#merge RDS
+```{r}
+#merge poolA
+poolA <-
+  c(
+    "C:/myfiles/df_Q1.rds",
+    "C:/otherfiles/df_Q2.rds"
+  )
+
+rds_combo <- rdsfiles %>%
+  map_dfr(readRDS)
+
+saveRDS(poolA, file = "020_010_042_025.rds")
+
+```
+
+```{r}
+#merge poolB
+poolB <-
+  c(
+    "C:/myfiles/df_Q1.rds",
+    "C:/otherfiles/df_Q2.rds"
+  )
+
+rds_combo <- rdsfiles %>%
+  map_dfr(readRDS)
+
+saveRDS(poolB, file = "008_034_095_017.rds")
+
+```
+
+```{r}
+#merge poolA + poolB
+poolA_et_B <-
+  c(
+    "C:/myfiles/df_Q1.rds",
+    "C:/otherfiles/df_Q2.rds"
+  )
+
+rds_combo <- rdsfiles %>%
+  map_dfr(readRDS)
+
+saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017.rds")
+
+```
+
+#QC (quality control)
+```{r}
+#poolA
+poolA[["percent.mt"]] <- PercentageFeatureSet(seu, pattern = "^MT-")
+VlnPlot(poolA, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"))
+FeatureScatter(poolA, "nCount_RNA", "percent.mt")
+
+#poolB
+poolB[["percent.mt"]] <- PercentageFeatureSet(seu, pattern = "^MT-")
+VlnPlot(poolB, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"))
+FeatureScatter(poolB, "nCount_RNA", "percent.mt")
+
+#poolA et B
+poolA_et_B[["percent.mt"]] <- PercentageFeatureSet(seu, pattern = "^MT-")
+VlnPlot(poolA_et_B, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"))
+FeatureScatter(poolA_et_B, "nCount_RNA", "percent.mt")
+```
+
+#filtering
+```{r}
+#poolA
+poolA <- subset(
+  poolA,
+  subset = nFeature_RNA > 300 &
+    nFeature_RNA < 2500 &
+    percent.mt < 10
+)
+
+#poolB
+poolB <- subset(
+  poolB,
+  subset = nFeature_RNA > 300 &
+    nFeature_RNA < 2500 &
+    percent.mt < 10
+)
+
+#poolA et B
+poolA_et_B <- subset(
+  poolA_et_B,
+  subset = nFeature_RNA > 300 &
+    nFeature_RNA < 2500 &
+    percent.mt < 10
+)
+```
+
+#normalisation
+“LogNormalize” that normalizes the feature expression measurements for each cell by the total expression, multiplies this by a scale factor (10,000 by default), and log-transforms the result.
+```{r}
+#poolA
+poolA <- NormalizeData(poolA) 
+
+#poolB
+poolB <- NormalizeData(poolB) 
+
+#poolA et B
+poolA_et_B <- NormalizeData(poolA_et_B) 
+```
+
+#Identification of highly-variable genes
+```{r}
+#poolA
+poolA <- FindVariableFeatures(poolA, nfeatures = 2000)
+
+# Identify the top 10 Highly Variable Genes (HVGs) poolA
+top10_poolA <- head(VariableFeatures(poolA), 10)
+top10_plot_poolA <- VariableFeaturePlot(poolA)
+LabelPoints(plot = top10_plot_poolA, points = top10_poolA, repel = TRUE)
+
+#poolB
+poolB <- FindVariableFeatures(poolB, nfeatures = 2000)
+
+# Identify the top 10 Highly Variable Genes (HVGs) poolB
+top10_poolB <- head(VariableFeatures(poolB), 10)
+top10_plot_poolB <- VariableFeaturePlot(poolB)
+LabelPoints(plot = top10_plot_poolB, points = top10_poolB, repel = TRUE)
+
+#poolA et B
+poolA_et_B <- FindVariableFeatures(poolA_et_B, nfeatures = 2000)
+
+# Identify the top 10 Highly Variable Genes (HVGs) poolA et B
+top10_poolA_et_B <- head(VariableFeatures(poolA_et_B), 10)
+top10_plot_poolA_et_B <- VariableFeaturePlot(poolA_et_B)
+LabelPoints(plot = top10_plot_poolA_et_B, points = top10_poolA_et_B, repel = TRUE)
+```
+
+#scaling
+```{r}
+#poolA
+poolA <- ScaleData(poolA)
+view(poolA@assays$RNA)
+
+#poolB
+poolB <- ScaleData(poolB)
+view(poolB@assays$RNA)
+
+#poolA et B
+poolA_et_B <- ScaleData(poolA_et_B)
+view(poolA_et_B@assays$RNA)
+
+```
+
+#PCA
+```{r}
+#poolA
+poolA <- RunPCA(poolA, features = VariableFeatures(poolA))
+
+#choisir le nbr de PC
+
+ElbowPlot(poolA)
+
+# Visualize PCA
+VizDimLoadings(poolA, dims = 1:2, reduction = "pca")
+DimPlot(poolA, reduction = "pca")
+
+#poolB
+poolB <- RunPCA(poolB, features = VariableFeatures(poolB))
+
+#choisir le nbr de PC
+
+ElbowPlot(poolB)
+
+# Visualize PCA
+VizDimLoadings(poolB, dims = 1:2, reduction = "pca")
+DimPlot(poolB, reduction = "pca")
+
+#poolA et B
+poolA_et_B <- RunPCA(poolA_et_B, features = VariableFeatures(poolA_et_B))
+
+#choisir le nbr de PC
+
+ElbowPlot(poolA_et_B)
+
+# Visualize PCA
+VizDimLoadings(poolA_et_B, dims = 1:2, reduction = "pca")
+DimPlot(poolA_et_B, reduction = "pca")
+```
+
+#clustering
+```{r}
+#poolA
+poolA <-  FindNeighbors(poolA, dim = 1:30)
+poolA <- FindClusters(poolA, resolution = 0.4)
+
+#poolB
+poolB <-  FindNeighbors(poolB, dim = 1:30)
+poolB <- FindClusters(poolB, resolution = 0.4)
+
+#poolA et B
+poolA_et_B <-  FindNeighbors(poolA_et_B, dim = 1:30)
+poolA_et_B <- FindClusters(poolA_et_B, resolution = 0.4)
+
+```
+
+#UMAP
+```{r}
+#poolA
+poolA <- RunUMAP(poolA, dims = 1:30)
+DimPlot(poolA, reduction = "umap", label = TRUE)
+
+#poolB
+poolB <- RunUMAP(poolB, dims = 1:30)
+DimPlot(poolB, reduction = "umap", label = TRUE)
+
+#poolA et B
+poolA_et_B <- RunUMAP(poolA_et_B, dims = 1:30)
+DimPlot(poolA_et_B, reduction = "umap", label = TRUE)
+```
+
+#save
+```{r}
+#poolA
+saveRDS(poolA, file = "020_010_042_025_qc_drop_adt_integ_clean.rds")
+
+#poolB
+saveRDS(poolB, file = "008_034_095_017_qc_drop_adt_integ_clean.rds")
+
+#poolA et B
+saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_qc_drop_adt_integ_clean.rds")
+
+```
+
+#annotation
+```{r}
+#poolA
+
+#poolB
+
+#poolA et B
+
+```
+
+#save final
+```{r}
+#poolA
+saveRDS(poolA, file = "020_010_042_025_qc_drop_adt_integ_clean_annot.rds")
+
+#poolB
+saveRDS(poolB, file = "008_034_095_017_qc_drop_adt_integ_clean_annot.rds")
+
+#poolA et B
+saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_qc_drop_adt_integ_clean_annot.rds")
+
+```

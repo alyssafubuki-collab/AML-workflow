@@ -1,0 +1,1389 @@
+---
+title: "scRNA seq AML 2ndaire"
+format: html
+editor: visual
+---
+
+# Setting up environment:
+
+```{r}
+# Clean environment
+rm(list = ls(all.names = TRUE)) # will clear all objects including hidden objects
+gc() # free up memory and report the memory usage
+options(max.print = .Machine$integer.max, scipen = 999, stringsAsFactors = F, dplyr.summarise.inform = F) # avoid truncated output in R console and scientific notation
+```
+
+```{r}
+# Loading relevant libraries 
+library(tidyverse) # includes ggplot2, for data visualisation. dplyr, for data manipulation.
+library(Seurat)
+```
+
+```{r}
+# Set input path
+set.seed(42)
+```
+
+# import data
+
+## poolA
+
+```{r}
+#020_010_D refractaire
+inputMatrixDirOB1 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolA/poolA_output/outs/per_sample_outs/020_010_D/count/sample_raw_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB1)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB1))
+}
+
+cat("Reading 10X matrix...\n")
+OB1 <- Read10X(
+  data.dir = inputMatrixDirOB1,
+  gene.column = 2,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+str(OB1) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB1 <- OB1$`Gene Expression`
+
+#020_010_F
+inputMatrixDirOB2 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolA/poolA_output/outs/per_sample_outs/020_010_F/count/sample_raw_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB2)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB2))
+}
+
+cat("Reading 10X matrix...\n")
+OB2 <- Read10X(
+  data.dir = inputMatrixDirOB2,
+  gene.column = 2,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+str(OB2) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB2 <- OB2$`Gene Expression`
+
+#042_025_D repondeur
+inputMatrixDirOB3 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolA/poolA_output/outs/per_sample_outs/042_025_D/count/sample_raw_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB3)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB3))
+}
+
+cat("Reading 10X matrix...\n")
+OB3 <- Read10X(
+  data.dir = inputMatrixDirOB3,
+  gene.column = 2,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+str(OB3) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB3 <- OB3$`Gene Expression`
+
+#042_025_F
+inputMatrixDirOB4 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolA/poolA_output/outs/per_sample_outs/042_025_F/count/sample_raw_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB4)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB4))
+}
+
+cat("Reading 10X matrix...\n")
+OB4 <- Read10X(
+  data.dir = inputMatrixDirOB4,
+  gene.column = 2,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+str(OB4) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB4 <- OB4$`Gene Expression`
+```
+
+## poolB
+
+```{r}
+#008_034_D repondant
+
+inputMatrixDirOB5 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolB/poolB_output/outs/per_sample_outs/008_034_D/count/sample_raw_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB5)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB5))
+}
+
+cat("Reading 10X matrix...\n")
+OB5 <- Read10X(
+  data.dir = inputMatrixDirOB5,
+  gene.column = 2,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+str(OB5) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB5 <- OB5$`Gene Expression`
+
+#008_034_F
+inputMatrixDirOB6 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolB/poolB_output/outs/per_sample_outs/008_034_F/count/sample_raw_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB6)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB6))
+}
+
+cat("Reading 10X matrix...\n")
+OB6 <- Read10X(
+  data.dir = inputMatrixDirOB6,
+  gene.column = 2,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+str(OB6) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB6 <- OB6$`Gene Expression`
+
+
+#095_017_D refractaire
+inputMatrixDirOB7 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolB/poolB_output/outs/per_sample_outs/095_017_D/count/sample_raw_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB7)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB7))
+}
+
+cat("Reading 10X matrix...\n")
+OB7 <- Read10X(
+  data.dir = inputMatrixDirOB7,
+  gene.column = 2,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+str(OB7) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB7 <- OB7$`Gene Expression`
+
+
+#095_017_F
+inputMatrixDirOB8 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolB/poolB_output/outs/per_sample_outs/095_017_F/count/sample_raw_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB8)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB8))
+}
+
+cat("Reading 10X matrix...\n")
+OB8 <- Read10X(
+  data.dir = inputMatrixDirOB8,
+  gene.column = 2,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+str(OB8) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB8 <- OB8$`Gene Expression`
+```
+
+# create seurat object
+
+## poolA
+
+```{r}
+OB1 <- CreateSeuratObject(
+  counts = cts_OB1,
+  project = "AML_OB1",
+  min.cells = 3,
+  min.features = 200
+)
+
+saveRDS(OB1, file = "020_010_D.rds")
+
+head(rownames(OB1))
+
+OB2 <- CreateSeuratObject(
+  counts = cts_OB2,
+  project = "AML_OB2",
+  min.cells = 3,
+  min.features = 200
+)
+
+saveRDS(OB2, file = "020_010_F.rds")
+
+head(rownames(OB2))
+
+OB3 <- CreateSeuratObject(
+  counts = cts_OB3,
+  project = "AML_OB3",
+  min.cells = 3,
+  min.features = 200
+)
+
+saveRDS(OB3, file = "042_025_D.rds")
+
+head(rownames(OB3))
+
+OB4 <- CreateSeuratObject(
+  counts = cts_OB4,
+  project = "AML_OB4",
+  min.cells = 3,
+  min.features = 200
+)
+
+saveRDS(OB4, file = "042_025_F.rds")
+
+head(rownames(OB4))
+
+```
+
+## poolB
+
+```{r}
+OB5 <- CreateSeuratObject(
+  counts = cts_OB5,
+  project = "AML_OB5",
+  min.cells = 3,
+  min.features = 200
+)
+
+saveRDS(OB5, file = "008_034_D.rds")
+
+head(rownames(OB5))
+
+OB6 <- CreateSeuratObject(
+  counts = cts_OB6,
+  project = "AML_OB6",
+  min.cells = 3,
+  min.features = 200
+)
+
+saveRDS(OB6, file = "008_034_F.rds")
+
+head(rownames(OB6))
+
+OB7 <- CreateSeuratObject(
+  counts = cts_OB7,
+  project = "AML_OB7",
+  min.cells = 3,
+  min.features = 200
+)
+
+saveRDS(OB7, file = "095_017_D.rds")
+
+head(rownames(OB7))
+
+OB8 <- CreateSeuratObject(
+  counts = cts_OB8,
+  project = "AML_OB8",
+  min.cells = 3,
+  min.features = 200
+)
+
+saveRDS(OB8, file = "095_017_F.rds")
+
+head(rownames(OB8))
+
+```
+
+# merge RDS
+
+## merge poolA
+
+```{r}
+# Merge OB1 (x) with the others (y)
+poolA <- merge(
+  x = OB1, 
+  y = c(OB2, OB3, OB4), 
+  add.cell.ids = c("OB1", "OB2", "OB3", "OB4"), 
+  project = "PoolA"
+)
+
+# Check the new dimensions
+# Should be ~38k genes and the sum of all cells
+print(dim(poolA))
+
+saveRDS(poolA, file = "020_010_042_025.rds")
+
+```
+
+## merge poolB
+
+```{r}
+# Merge OB1 (x) with the others (y)
+poolB <- merge(
+  x = OB5, 
+  y = c(OB6, OB7, OB8), 
+  add.cell.ids = c("OB5", "OB6", "OB7", "OB8"), 
+  project = "PoolB"
+)
+
+# Check the new dimensions
+# Should be ~38k genes and the sum of all cells
+print(dim(poolB))
+
+saveRDS(poolB, file = "008_034_095_017.rds")
+
+```
+
+## merge poolA + poolB
+
+```{r}
+# Merge poolA and poolB
+# 'add.cell.ids' is critical here to avoid duplicate cell names across pools
+poolA_et_B <- merge(
+  x = poolA, 
+  y = poolB, 
+  add.cell.ids = c("PoolA", "PoolB"), 
+  project = "Full_AML_Cohort"
+)
+
+# 1. Check the final cell count
+ncol(poolA_et_B)
+print(dim(poolA_et_B))
+saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017.rds")
+
+```
+
+# Ajouter les metadata biologiques
+
+```{r}
+poolA_et_B$patient <- NA
+poolA_et_B$response <- NA
+poolA_et_B$timepoint <- NA
+```
+
+```{r}
+# Assignation patient
+poolA_et_B$patient[poolA_et_B$orig.ident %in% c("AML_OB1","AML_OB2")] <- "P1"
+poolA_et_B$patient[poolA_et_B$orig.ident %in% c("AML_OB3","AML_OB4")] <- "P2"
+poolA_et_B$patient[poolA_et_B$orig.ident %in% c("AML_OB5","AML_OB6")] <- "P3"
+poolA_et_B$patient[poolA_et_B$orig.ident %in% c("AML_OB7","AML_OB8")] <- "P4"
+
+# Assignation réponse
+poolA_et_B$response[poolA_et_B$patient %in% c("P1","P4")] <- "refractory"
+poolA_et_B$response[poolA_et_B$patient %in% c("P2","P3")] <- "responder"
+
+# Assignation timepoint
+poolA_et_B$timepoint[poolA_et_B$orig.ident %in% c("AML_OB1","AML_OB3","AML_OB5","AML_OB7")] <- "pre"
+poolA_et_B$timepoint[poolA_et_B$orig.ident %in% c("AML_OB2","AML_OB4","AML_OB6","AML_OB8")] <- "post"
+
+```
+
+```{r}
+# Vérifier
+table(poolA_et_B$patient, poolA_et_B$timepoint)
+table(poolA_et_B$response, poolA_et_B$timepoint)
+```
+
+# QC (quality control)
+
+```{r}
+#poolA
+poolA[["percent.mt"]] <- PercentageFeatureSet(poolA, pattern = "^MT-")
+VlnPlot(poolA, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"))
+FeatureScatter(poolA, "nCount_RNA", "percent.mt")
+
+#poolB
+poolB[["percent.mt"]] <- PercentageFeatureSet(poolB, pattern = "^MT-")
+VlnPlot(poolB, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"))
+FeatureScatter(poolB, "nCount_RNA", "percent.mt")
+
+#poolA et B
+poolA_et_B[["percent.mt"]] <- PercentageFeatureSet(poolA_et_B, pattern = "^MT-")
+VlnPlot(poolA_et_B, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"))
+FeatureScatter(poolA_et_B, "nCount_RNA", "percent.mt")
+```
+
+```{r}
+#poolA
+poolA[["percent.ribo"]] <- PercentageFeatureSet(poolA, pattern = "^RPS|^RPL")
+
+#pool B
+poolB[["percent.ribo"]] <- PercentageFeatureSet(poolB, pattern = "^RPS|^RPL")
+
+#poolA et B
+poolA_et_B[["percent.ribo"]] <- PercentageFeatureSet(poolA_et_B, pattern = "^RPS|^RPL")
+```
+
+# filtering
+
+```{r}
+#poolA
+poolA <- subset(
+  poolA,
+  subset = nFeature_RNA > 300 &
+    nFeature_RNA < 2500 &
+    percent.mt < 10
+)
+VlnPlot(poolA, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"))
+FeatureScatter(poolA, "nCount_RNA", "percent.mt")
+
+#poolB
+poolB <- subset(
+  poolB,
+  subset = nFeature_RNA > 300 &
+    nFeature_RNA < 2500 &
+    percent.mt < 10
+)
+VlnPlot(poolB, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"))
+FeatureScatter(poolB, "nCount_RNA", "percent.mt")
+
+#poolA et B
+poolA_et_B <- subset(
+  poolA_et_B,
+  subset = nFeature_RNA > 300 &
+    nFeature_RNA < 2500 &
+    percent.mt < 10
+)
+
+VlnPlot(poolA_et_B, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"))
+FeatureScatter(poolA_et_B, "nCount_RNA", "percent.mt")
+```
+
+#normalisation “LogNormalize” that normalizes the feature expression measurements for each cell by the total expression, multiplies this by a scale factor (10,000 by default), and log-transforms the result.
+
+```{r}
+#poolA
+poolA <- NormalizeData(poolA) 
+
+#poolB
+poolB <- NormalizeData(poolB) 
+
+#poolA et B
+poolA_et_B <- NormalizeData(poolA_et_B) 
+```
+
+
+# Identification of highly-variable genes
+
+```{r}
+#poolA
+poolA <- FindVariableFeatures(poolA, nfeatures = 2000)
+
+# Identify the top 10 Highly Variable Genes (HVGs) poolA
+top10_poolA <- head(VariableFeatures(poolA), 10)
+top10_plot_poolA <- VariableFeaturePlot(poolA)
+LabelPoints(plot = top10_plot_poolA, points = top10_poolA, repel = TRUE)
+
+#poolB
+poolB <- FindVariableFeatures(poolB, nfeatures = 2000)
+
+# Identify the top 10 Highly Variable Genes (HVGs) poolB
+top10_poolB <- head(VariableFeatures(poolB), 10)
+top10_plot_poolB <- VariableFeaturePlot(poolB)
+LabelPoints(plot = top10_plot_poolB, points = top10_poolB, repel = TRUE)
+
+#poolA et B
+poolA_et_B <- FindVariableFeatures(poolA_et_B, nfeatures = 2000)
+
+# Identify the top 10 Highly Variable Genes (HVGs) poolA et B
+top10_poolA_et_B <- head(VariableFeatures(poolA_et_B), 10)
+top10_plot_poolA_et_B <- VariableFeaturePlot(poolA_et_B)
+LabelPoints(plot = top10_plot_poolA_et_B, points = top10_poolA_et_B, repel = TRUE)
+```
+
+
+# nbr gene/cell
+
+```{r}
+# Summary table of genes per cell by Sample
+VlnPlot(poolA_et_B, features = "nFeature_RNA", group.by = "orig.ident")
+
+# To get the average number per pool:
+#tapply(poolA_et_B$nFeature_RNA, poolA_et_B$pool, mean) [cite: 12]
+```
+
+## nbr de cell/condition 
+```{r}
+poolA_et_B@meta.data %>%
+  count(response) %>%
+  ggplot(aes(x = response, y = n, fill = response)) +
+  geom_bar(stat = "identity") +
+  theme_bw() +
+  labs(
+    x = "réponse au ttt",
+    y = "Nombre de cellules"
+  )
+```
+
+# scaling
+
+```{r}
+#poolA
+poolA <- ScaleData(poolA)
+#view(poolA@assays$RNA)
+
+#poolB
+poolB <- ScaleData(poolB)
+#view(poolB@assays$RNA)
+
+#poolA et B
+poolA_et_B <- ScaleData(poolA_et_B)
+#view(poolA_et_B@assays$RNA)
+
+```
+
+# PCA
+
+```{r}
+#poolA
+poolA <- RunPCA(poolA, features = VariableFeatures(poolA))
+
+#choisir le nbr de PC
+
+ElbowPlot(poolA, ndims = 50)
+
+# Visualize PCA
+VizDimLoadings(poolA, dims = 1:2, reduction = "pca")
+DimPlot(poolA, reduction = "pca")
+
+#poolB
+poolB <- RunPCA(poolB, features = VariableFeatures(poolB))
+
+#choisir le nbr de PC
+
+ElbowPlot(poolB, ndims = 50)
+
+# Visualize PCA
+VizDimLoadings(poolB, dims = 1:2, reduction = "pca")
+DimPlot(poolB, reduction = "pca")
+
+#poolA et B
+poolA_et_B <- RunPCA(poolA_et_B, features = VariableFeatures(poolA_et_B))
+
+#choisir le nbr de PC
+
+ElbowPlot(poolA_et_B, ndims = 50)
+
+# Visualize PCA
+VizDimLoadings(poolA_et_B, dims = 1:2, reduction = "pca")
+DimPlot(poolA_et_B, reduction = "pca")
+```
+
+# cell cycle
+
+```{r}
+library(scran)
+library(BiocParallel)
+
+cell_cyle <- cyclone(
+  poolA_et_B, 
+  pairs = pairs, 
+  gene.names = rownames(poolA_et_B),
+  BPPARAM = SerialParam()
+)
+
+head(cell_cyle)
+head(cell_cyle$scores)
+head(cell_cyle$phases)
+
+# Add the phase predictions to your metadata
+poolA_et_B$G1_score <- assignments$score$G1
+poolA_et_B$S_score <- assignments$score$S
+poolA_et_B$G2M_score <- assignments$score$G2M
+poolA_et_B$phase <- assignments$phases
+
+# Visualize: Are the Refractory cells "sleeping" (G1)?
+VlnPlot(poolA_et_B, features = "G1_score", group.by = "response")
+```
+
+```{r}
+poolA_et_B@meta.data %>%
+  count(cell_cyle) %>%
+  ggplot(aes(x = cell_cyle, y = n, fill = cell_cyle)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_bw() +
+  labs(
+    x = "cell cycle",
+    y = "nbr de cell"
+  )
+```
+
+```{r}
+poolA_et_B@meta.data %>%
+  count(patient ,cell_cycle) %>%
+  ggplot(aes(x = patient, y = n, fill = cell_cyle)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_bw() +
+  labs(
+    x = "samples",
+    y = "nbr de cell",
+    fill = "cell_cycle"
+  )
+```
+
+# Integration
+
+```{r}
+# (keeping layers separate)
+poolA_et_B <- IntegrateLayers(
+  object = poolA_et_B, 
+  method = CCAIntegration, # Good for different donors
+  orig.reduction = "pca", 
+  new.reduction = "integrated.cca",
+  verbose = FALSE
+)
+```
+
+# clustering
+
+```{r}
+#poolA
+poolA <-  FindNeighbors(poolA, dim = 1:30)
+poolA <- FindClusters(poolA, resolution = 0.4)
+
+#poolB
+poolB <-  FindNeighbors(poolB, dim = 1:30)
+poolB <- FindClusters(poolB, resolution = 0.4)
+
+#poolA et B
+poolA_et_B <-  FindNeighbors(poolA_et_B, dim = 1:30)
+poolA_et_B <- FindClusters(poolA_et_B, resolution = 0.4)
+
+```
+
+# UMAP
+
+```{r}
+#poolA
+poolA <- RunUMAP(poolA, dims = 1:30)
+DimPlot(poolA, reduction = "umap", label = TRUE)
+
+#poolB
+poolB <- RunUMAP(poolB, dims = 1:30)
+DimPlot(poolB, reduction = "umap", label = TRUE)
+
+#poolA et B
+poolA_et_B <- RunUMAP(poolA_et_B, dims = 1:30)
+DimPlot(poolA_et_B, reduction = "umap", label = TRUE)
+```
+
+
+# batch effect check
+
+```{r}
+
+# Check if samples (OB1-OB8) are mixing or separated
+#p1 <- DimPlot(poolA_et_B, reduction = "umap", group.by = "orig.ident") + 
+      #ggtitle("UMAP by Sample ID")
+
+# Check if there is a "Pool" effect (PoolA vs PoolB)
+# Note: Since you merged poolA and poolB with add.cell.ids, 
+# you might need to create a 'pool' column if it's not already in metadata.
+# Safer way to assign Pool metadata
+#poolA_et_B$pool <- ifelse(poolA_et_B$orig.ident %in% c("AML_OB1", "AML_OB2", "AML_OB3", "AML_OB4"), "PoolA", "PoolB")
+#poolA_et_B$pool <- ifelse(grepl("PoolA", rownames(poolA_et_B@meta.data)), "PoolA", "PoolB")
+
+#p2 <- DimPlot(poolA_et_B, reduction = "umap", group.by = "pool") + 
+     # ggtitle("UMAP by Pool")
+
+#p1 + p2
+```
+
+# join layer
+
+```{r}
+# --- poolA ---
+# Join layers first
+poolA <- JoinLayers(poolA)
+
+# --- poolB ---
+# Join layers first
+poolB <- JoinLayers(poolB)
+
+# --- poolA et B ---
+# Join layers first
+poolA_et_B <- JoinLayers(poolA_et_B)
+
+```
+
+
+# find marker
+
+```{r}
+#poolA
+markers_poolA <-  FindAllMarkers(
+  poolA,
+  only.pos = TRUE,
+  min.pct = 0.25,
+  logfc.threshold = 0.25
+)
+
+#poolB
+markers_poolB <-  FindAllMarkers(
+  poolB,
+  only.pos = TRUE,
+  min.pct = 0.25,
+  logfc.threshold = 0.25
+)
+
+#poolA et B
+markers_poolA_et_B <-  FindAllMarkers(
+  poolA_et_B,
+  only.pos = TRUE,
+  min.pct = 0.25,
+  logfc.threshold = 0.25
+)
+```
+
+```{r}
+library(dplyr)
+
+top10 <- markers_poolA_et_B %>%
+  group_by(cluster) %>%
+  slice_max(n = 10, order_by = avg_log2FC)
+
+DoHeatmap(poolA_et_B, features = top10$gene)
+```
+
+```{r}
+VlnPlot(poolA_et_B, features = c("TKT", "MAL", "GZMH", "ADGRL3", "TRDC", "BICDL1", "LINC02506", "LINC01819", "IFIT1", "XACT","TNFAIP6", "IGLC3", "LINC02446", "ENSG00000283458", "ENSG00000236304", "LINC01169", "PACSIN1"))
+RidgePlot(poolA_et_B, features = c("TKT", "MAL", "GZMH", "ADGRL3", "TRDC", "BICDL1", "LINC02506", "LINC01819", "IFIT1", "XACT","TNFAIP6", "IGLC3", "LINC02446", "ENSG00000283458", "ENSG00000236304", "LINC01169", "PACSIN1"))
+DotPlot(poolA_et_B, features = c("TKT", "MAL", "GZMH", "ADGRL3", "TRDC", "BICDL1", "LINC02506", "LINC01819", "IFIT1", "XACT","TNFAIP6", "IGLC3", "LINC02446", "ENSG00000283458", "ENSG00000236304", "LINC01169", "PACSIN1"))
+```
+
+```{r}
+VlnPlot(poolA_et_B, features = top10$gene)
+RidgePlot(poolA_et_B, features = top10$gene)
+```
+
+```{r}
+unique(poolA_et_B$orig.ident)
+```
+
+
+# sex classification
+
+```{r}
+library(org.Hs.eg.db)
+library(cellXY)
+
+# 1. Extraire les counts bruts
+# JoinLayers est crucial ici pour avoir une seule matrice
+poolA_et_B <- JoinLayers(poolA_et_B)
+counts_bruts <- GetAssayData(poolA_et_B, assay = "RNA", layer = "counts")
+
+# 2. Conversion en matrice standard (Dense Matrix)
+# C'est l'étape qui règle l'erreur "S4 to vector"
+counts_matrix <- as.matrix(counts_bruts)
+
+# 3. Vérification des noms de gènes
+# cellXY a besoin de SYMBOLS (ex: XIST, pas ENSG000...)
+# Si vos gènes sont déjà des Symbols, passez à l'étape 4.
+# Sinon, utilisez ce bloc pour convertir :
+# ann <- select(org.Hs.eg.db, keys=rownames(counts_matrix), 
+#               columns=c("SYMBOL"), keytype="ENSEMBL")
+# m <- match(rownames(counts_matrix), ann$ENSEMBL)
+# rownames(counts_matrix) <- ann$SYMBOL[m]
+
+# 4. Lancer la classification
+# On donne la matrice 'counts_matrix' directement, pas l'objet Seurat
+sex_preds <- classifySex(counts_matrix, genome = "Hs")
+
+# 5. Vérifier et Intégrer
+table(sex_preds$prediction)
+
+# Ajouter au metadata Seurat
+poolA_et_B$predicted_sex <- sex_preds$prediction
+
+# 6. Le Boxplot de validation (comme dans l'exemple)
+boxplot(counts_matrix["XIST", ] ~ poolA_et_B$predicted_sex, 
+        main="Validation par XIST", ylab="Expression Log", col=c("pink", "lightblue"))
+```
+
+
+```{r}
+library(ggplot2)
+
+df_sex <- as.data.frame(table(poolA_et_B$patient, poolA_et_B$predicted_sex))
+colnames(df_sex) <- c("Patient", "Sexe", "Nombre_de_Cellules")
+
+ggplot(df_sex, aes(x = Patient, y = Nombre_de_Cellules, fill = Sexe)) +
+  geom_bar(stat = "identity", position = "fill") + # "fill" pour avoir des pourcentages (0 à 100%)
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("Female" = "pink", "Male" = "lightblue")) +
+  theme_minimal() +
+  labs(title = "Répartition du Sexe par Patient", 
+       y = "Proportion de cellules", 
+       x = "Identifiant Patient")
+```
+
+
+```{r}
+library(ggplot2)
+
+# EXtraction de la colonne sex en vecteur simple
+sex_vector <- as.character(poolA_et_B$predicted_sex)
+
+# creation d'un count table et convertion en data frame
+sex_counts <- as.data.frame(table(sex_vector))
+colnames(sex_counts) <- c("Sexe", "Nombre_de_cellules")
+
+ggplot(sex_counts, aes(x = Sexe, y = Nombre_de_cellules, fill = Sexe)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("Female" = "pink", "Male" = "lightblue")) +
+  theme_minimal() +
+  labs(title = "Répartition Globale du Sexe", 
+       subtitle = "Nombre total de cellules identifiées",
+       x = "Sexe Prédit", 
+       y = "Nombre de cellules")
+```
+
+# filtration des gene sex 
+```{r}
+# Comparer Réfractaire vs Répondeur en ignorant l'effet du sexe
+# On utilise l'argument 'latent.vars' pour corriger statistiquement le biais
+clean_markers <- FindMarkers(
+  poolA_et_B, 
+  group.by = "response", 
+  ident.1 = "refractory", 
+  ident.2 = "responder",
+  latent.vars = "predicted_sex", # CECI est la clé pour "effacer" le bruit du sexe
+  test.use = "LR" # Nécessaire quand on utilise latent.vars
+)
+
+# Regardez le nouveau top 10
+head(clean_markers, 10)
+
+# Mise à jour du Heatmap
+DoHeatmap(poolA_et_B, 
+          features = clean_markers, 
+          group.by = "response", 
+          size = 4) + 
+  scale_fill_gradientn(colors = c("blue", "white", "red")) +
+  ggtitle("Signature de Résistance (Corrigée du Sexe)")
+```
+
+## évolution intra-patient
+
+```{r}
+DimPlot(poolA_et_B, group.by = "timepoint", split.by = "patient")
+```
+
+## proportions par cluster
+
+```{r}
+prop.table(table(
+  Idents(poolA_et_B),
+  poolA_et_B$timepoint,
+  poolA_et_B$patient
+), margin = 2)
+```
+
+## comparer responder vs refractory
+
+```{r}
+DimPlot(poolA_et_B, group.by = "response")
+```
+
+```{r}
+library(patchwork) # to put plots side by side
+
+p1 <- DimPlot(poolA_et_B, reduction = "umap", group.by = "response") + ggtitle("Response")
+p2 <- DimPlot(poolA_et_B, reduction = "umap", group.by = "seurat_clusters", label = TRUE) + ggtitle("Clusters")
+
+p1 + p2
+```
+
+## proportions de cell
+
+```{r}
+prop.table(table(
+  Idents(poolA_et_B),
+  poolA_et_B$response
+), margin = 2)
+```
+
+# analyse differentiel #PRE vs POST (par patient)
+
+```{r}
+Idents(poolA_et_B) <- "timepoint"
+
+markers_pre_post <- FindMarkers(
+  poolA_et_B,
+  ident.1 = "post",
+  ident.2 = "pre",
+  subset.ident = "P1"
+)
+```
+
+```{r}
+top10 <- markers_pre_post %>%
+  rownames_to_column("gene") %>%
+  slice_max(order_by = avg_log2FC, n = 10)
+
+DoHeatmap(poolA_et_B, features = top10$gene) + NoLegend()
+```
+
+```{r}
+VlnPlot(poolA_et_B, features = top10$gene[1:10], group.by = "timepoint")
+```
+
+```{r}
+FeaturePlot(poolA_et_B, features = top10$gene[1:10])
+```
+
+```{r}
+DotPlot(poolA_et_B, features = top10$gene, group.by = "timepoint") + RotatedAxis()
+```
+
+```{r}
+library(ggplot2)
+
+markers_pre_post$gene <- rownames(markers_pre_post)
+
+ggplot(markers_pre_post, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
+  geom_point() +
+  theme_minimal() +
+  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed") +
+  geom_hline(yintercept = 2) +
+  ggtitle("Volcano plot PRE vs POST")
+```
+
+```{r}
+# Top genes upregulated POST
+top_post <- markers_pre_post %>%
+  rownames_to_column("gene") %>%
+  filter(avg_log2FC > 0) %>%
+  slice_max(n = 20, order_by = avg_log2FC)
+
+# Ajouter score 
+#calculates an average expression "score" for a whole list of genes
+poolA_et_B <- AddModuleScore(
+  poolA_et_B,
+  features = list(top_post$gene),
+  name = "POST_signature"
+)
+
+FeaturePlot(poolA_et_B, features = "POST_signature1")
+VlnPlot(poolA_et_B, features = "POST_signature1", group.by = "timepoint")
+```
+
+## responder vs refractory
+
+```{r}
+Idents(poolA_et_B) <- "response"
+
+markers_resistance <- FindMarkers(
+  poolA_et_B,
+  ident.1 = "refractory",
+  ident.2 = "responder"
+)
+```
+
+```{r}
+top_resistance <- markers_resistance %>%
+  rownames_to_column("gene") %>%
+  filter(avg_log2FC > 0) %>%
+  slice_max(n = 20, order_by = avg_log2FC)
+
+poolA_et_B <- AddModuleScore(
+  poolA_et_B,
+  features = list(top_resistance$gene),
+  name = "Resistance_signature1"
+)
+
+FeaturePlot(poolA_et_B, features = "Resistance_signature1")
+VlnPlot(poolA_et_B, features = "Resistance_signature1", group.by = "response")
+```
+
+## par cluster
+
+```{r}
+Idents(poolA_et_B) <- "seurat_clusters"
+
+markers_cluster <- FindMarkers(
+  subset(poolA_et_B, idents = 3),
+  group.by = "response",
+  ident.1 = "refractory",
+  ident.2 = "responder"
+)
+```
+
+## tableau de comptage
+
+```{r}
+table(poolA_et_B$patient, poolA_et_B$timepoint)
+table(poolA_et_B$response, poolA_et_B$timepoint)
+```
+
+# save
+
+```{r}
+#poolA
+saveRDS(poolA, file = "020_010_042_025_qc_drop_adt_integ_clean.rds")
+
+#poolB
+saveRDS(poolB, file = "008_034_095_017_qc_drop_adt_integ_clean.rds")
+
+#poolA et B
+saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_qc_drop_adt_integ_clean.rds")
+
+```
+
+# annotation
+
+```{r}
+library(SingleR)
+library(caret)
+library(patchwork)
+library("ggplot2")
+library('viridis')
+library('pheatmap')
+
+ref <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/Ref_annotation/AML_downsampled_ref_fixed2_with_umap.rds")
+
+#poolA
+ref_mat_poolA  <- GetAssayData(ref, layer = "data")
+test_mat_poolA <- GetAssayData(poolA, layer = "data")
+
+head(test_mat_poolA)
+head(ref_mat_poolA)
+
+common_genes_poolA <- intersect(rownames(ref_mat_poolA), rownames(test_mat_poolA))
+length(common_genes_poolA)
+
+pred_poolA <- SingleR(test = test_mat_poolA, ref = ref_mat_poolA, labels = ref$Cell.Type, de.method="wilcox", de.n=20)
+colnames(pred_poolA)
+
+head(sort(table(pred_poolA$labels), decreasing=TRUE))
+table(pred_poolA$labels)
+head(pred_poolA$labels)
+
+pred_poolA$scores[1:10,]
+plotScoreHeatmap(pred_poolA)
+
+pred2_poolA <- SingleR(test = test_mat_poolA, ref = ref_mat_poolA, labels = ref$HSPC.Cell.Type, de.method="wilcox", de.n=20)
+
+colnames(pred2_poolA)
+table(pred2_poolA$labels)
+head(sort(table(pred2_poolA$labels), decreasing=TRUE))
+
+pred2_poolA$scores[1:10,]
+plotScoreHeatmap(pred2_poolA)
+
+poolA$SingleR_main_poolA  <- pred_poolA$labels
+poolA$SingleR_fine_poolA  <- pred2_poolA$labels
+poolA@meta.data[["SingleR_main_poolA"]]
+poolA@meta.data[["SingleR_fine_poolA"]]
+
+options(ggrepel.max.overlaps = Inf)
+
+DimPlot(
+  poolA,
+  reduction = "umap",
+  group.by = "SingleR_main_poolA",
+  label = TRUE,
+  repel = TRUE
+) + theme_bw()
+
+DimPlot(
+  poolA,
+  reduction = "umap",
+  group.by = "SingleR_fine_poolA",
+  label = TRUE,
+  repel = TRUE
+) + theme_bw()
+
+
+#poolB
+ref_mat_poolB  <- GetAssayData(ref, layer = "data")
+test_mat_poolB <- GetAssayData(poolB, layer = "data")
+
+head(test_mat_poolB)
+head(ref_mat_poolB)
+
+common_genes_poolB <- intersect(rownames(ref_mat_poolB), rownames(test_mat_poolB))
+length(common_genes_poolB)
+
+pred_poolB <- SingleR(test = test_mat_poolB, ref = ref_mat_poolB, labels = ref$Cell.Type, de.method="wilcox", de.n=20)
+colnames(pred_poolB)
+
+head(sort(table(pred_poolB$labels), decreasing=TRUE))
+table(pred_poolB$labels)
+head(pred_poolB$labels)
+
+pred_poolB$scores[1:10,]
+plotScoreHeatmap(pred_poolB)
+
+pred2_poolB <- SingleR(test = test_mat_poolB, ref = ref_mat_poolB, labels = ref$HSPC.Cell.Type, de.method="wilcox", de.n=20)
+
+colnames(pred2_poolB)
+table(pred2_poolB$labels)
+head(sort(table(pred2_poolB$labels), decreasing=TRUE))
+
+pred2_poolB$scores[1:10,]
+plotScoreHeatmap(pred2_poolB)
+
+poolB$SingleR_main_poolB  <- pred_poolB$labels
+poolB$SingleR_fine_poolB  <- pred2_poolB$labels
+poolB@meta.data[["SingleR_main_poolB"]]
+poolB@meta.data[["SingleR_fine_poolB"]]
+
+options(ggrepel.max.overlaps = Inf)
+
+DimPlot(
+  poolB,
+  reduction = "umap",
+  group.by = "SingleR_main_poolB",
+  label = TRUE,
+  repel = TRUE
+) + theme_bw()
+
+DimPlot(
+  poolB,
+  reduction = "umap",
+  group.by = "SingleR_fine_poolB",
+  label = TRUE,
+  repel = TRUE
+) + theme_bw()
+
+
+#poolA et B
+ref_mat_poolA_et_B  <- GetAssayData(ref, layer = "data")
+test_mat_poolA_et_B <- GetAssayData(poolA_et_B, layer = "data")
+
+head(test_mat_poolA_et_B)
+head(ref_mat_poolA_et_B)
+
+common_genes_poolA_et_B <- intersect(rownames(ref_mat_poolA_et_B), rownames(test_mat_poolA_et_B))
+length(common_genes_poolA_et_B)
+
+pred_poolA_et_B <- SingleR(test = test_mat_poolA_et_B, ref = ref_mat_poolA_et_B, labels = ref$Cell.Type, de.method="wilcox", de.n=20)
+colnames(pred_poolA_et_B)
+
+head(sort(table(pred_poolA_et_B$labels), decreasing=TRUE))
+table(pred_poolA_et_B$labels)
+head(pred_poolA_et_B$labels)
+
+pred_poolA_et_B$scores[1:10,]
+plotScoreHeatmap(pred_poolA_et_B)
+
+pred2_poolA_et_B <- SingleR(test = test_mat_poolA_et_B, ref = ref_mat_poolA_et_B, labels = ref$HSPC.Cell.Type, de.method="wilcox", de.n=20)
+
+colnames(pred2_poolA_et_B)
+table(pred2_poolA_et_B$labels)
+head(sort(table(pred2_poolA_et_B$labels), decreasing=TRUE))
+
+pred2_poolA_et_B$scores[1:10,]
+plotScoreHeatmap(pred2_poolA_et_B)
+
+poolA_et_B$SingleR_main_poolA_et_B  <- pred_poolA_et_B$labels
+poolA_et_B$SingleR_fine_poolA_et_B  <- pred2_poolA_et_B$labels
+poolA_et_B@meta.data[["SingleR_main_poolA_et_B"]]
+poolA_et_B@meta.data[["SingleR_fine_poolA_et_B"]]
+
+options(ggrepel.max.overlaps = Inf)
+
+DimPlot(
+  poolA_et_B,
+  reduction = "umap",
+  group.by = "SingleR_main_poolA_et_B",
+  label = TRUE,
+  repel = TRUE
+) + theme_bw()
+
+DimPlot(
+  poolA_et_B,
+  reduction = "umap",
+  group.by = "SingleR_fine_poolA_et_B",
+  label = TRUE,
+  repel = TRUE
+) + theme_bw()
+```
+
+```{r}
+table(poolA_et_B$patient, poolA_et_B$timepoint)
+table(poolA_et_B$response, poolA_et_B$timepoint)
+```
+
+```{r}
+library(patchwork) # to put plots side by side
+
+p1 <- DimPlot(poolA_et_B, reduction = "umap", group.by = "response") + ggtitle("Response")
+p2 <- DimPlot(poolA_et_B, reduction = "umap", group.by = "SingleR_main_poolA_et_B", label = TRUE) + ggtitle("Clusters")
+
+p1 + p2
+```
+
+```{r}
+library(patchwork) 
+
+p1 <- DimPlot(poolA_et_B, reduction = "umap", group.by = "response") + ggtitle("Response")
+p2 <- DimPlot(poolA_et_B, reduction = "umap", group.by = "SingleR_fine_poolA_et_B", label = TRUE) + ggtitle("Clusters")
+
+p1 + p2
+```
+
+```{r}
+# Reset Idents to clusters to find the number
+Idents(poolA_et_B) <- "seurat_clusters"
+
+# Calculate the percentage of Refractory vs Responder per cluster
+comp_table <- table(poolA_et_B$seurat_clusters, poolA_et_B$response)
+prop_table <- prop.table(comp_table, margin = 1) * 100
+
+# Sort to see the most "Refractory" clusters at the top
+print(prop_table[order(prop_table[, "refractory"], decreasing = TRUE), ])
+```
+
+```{r}
+# Créer une table croisée Cluster / Patient
+patient_cluster_table <- table(poolA_et_B$seurat_clusters, poolA_et_B$patient)
+
+# Convertir en proportions par patient (pour normaliser si un patient a plus de cellules)
+patient_prop <- prop.table(patient_cluster_table, margin = 2) * 100
+
+# Afficher les clusters pour vos patients réfractaires (P1 et P4)
+print(patient_prop[, c("P1", "P4")])
+```
+
+```{r}
+Idents(poolA_et_B) <- "response"
+
+#cluster 6
+DotPlot(poolA_et_B, features = c("LINC02506", "TNFRSF12A", "HLA-DRB5", "SPINK2", "EMP1", "ID1", "CXCL8", "ABO", "LMNA", "FHL2"))
+
+#cluster 0
+DotPlot(poolA_et_B, features = c("TKT", "SERPINB1", "HSPD1", "NPM1", "PDIA6", "TALAM1", "ATP5F1C", "TUBB", "OLA1", "CCT6A"))
+
+#cluster 14
+DotPlot(poolA_et_B, features = c("ENSG00000236304", "ENSG00000289621", "SPX", "PF4V1", "PPBP", "LY6G6F", "GP9", "PF4", "TREML1", "CLEC1B"))
+```
+
+```{r}
+Idents(poolA_et_B) <- "timepoint"
+
+#cluster 6
+DotPlot(poolA_et_B, features = c("LINC02506", "TNFRSF12A", "HLA-DRB5", "SPINK2", "EMP1", "ID1", "CXCL8", "ABO", "LMNA", "FHL2"))
+
+#cluster 0
+DotPlot(poolA_et_B, features = c("TKT", "SERPINB1", "HSPD1", "NPM1", "PDIA6", "TALAM1", "ATP5F1C", "TUBB", "OLA1", "CCT6A"))
+
+#cluster 14
+DotPlot(poolA_et_B, features = c("ENSG00000236304", "ENSG00000289621", "SPX", "PF4V1", "PPBP", "LY6G6F", "GP9", "PF4", "TREML1", "CLEC1B"))
+```
+
+```{r}
+Idents(poolA_et_B) <- "patient"
+
+#cluster 6
+DotPlot(poolA_et_B, features = c("LINC02506", "TNFRSF12A", "HLA-DRB5", "SPINK2", "EMP1", "ID1", "CXCL8", "ABO", "LMNA", "FHL2"))
+
+#cluster 0
+DotPlot(poolA_et_B, features = c("TKT", "SERPINB1", "HSPD1", "NPM1", "PDIA6", "TALAM1", "ATP5F1C", "TUBB", "OLA1", "CCT6A"))
+
+#cluster 14
+DotPlot(poolA_et_B, features = c("ENSG00000236304", "ENSG00000289621", "SPX", "PF4V1", "PPBP", "LY6G6F", "GP9", "PF4", "TREML1", "CLEC1B"))
+```
+
+```{r}
+# Cross-tabulate Cluster number with SingleR Fine labels
+table(poolA_et_B$seurat_clusters, poolA_et_B$SingleR_fine_poolA_et_B)
+``` 
+
+```{r}
+# Create a contingency table of Clusters vs SingleR Fine Annotation
+annotation_map <- table(poolA_et_B$seurat_clusters, poolA_et_B$SingleR_fine_poolA_et_B)
+
+# Convert to proportions to see the "dominant" cell type for each cluster
+annotation_prop <- prop.table(annotation_map, margin = 1) * 100
+
+# View the map
+print(annotation_prop)
+
+library(ggplot2)
+
+# This plot shows the distribution of cell types within each cluster
+ggplot(poolA_et_B@meta.data, aes(x = seurat_clusters, fill = SingleR_fine_poolA_et_B)) +
+  geom_bar(position = "fill") +
+  theme_minimal() +
+  RotatedAxis() +
+  labs(y = "Proportion", title = "Biological Identity of Numerical Clusters")
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(poolA_et_B@meta.data, aes(x = response, fill = SingleR_fine_poolA_et_B)) +
+  geom_bar(position = "fill") +
+  theme_minimal() +
+  labs(y = "Proportion of Cells", title = "Cell Type Composition: Responder vs Refractory")
+```
+
+```{r}
+# Install if needed: install.packages("openxlsx")
+library(openxlsx)
+
+# 1. Set Identity to Response
+Idents(poolA_et_B) <- "response"
+
+# 2. Run the Differential Expression (DE)
+# We use logfc.threshold = 0.25 (approx 1.2x fold change) 
+# and min.pct = 0.1 (gene must be in at least 10% of cells)
+resistance_markers <- FindMarkers(
+  poolA_et_B,
+  ident.1 = "refractory",
+  ident.2 = "responder",
+  only.pos = TRUE 
+)
+
+# 3. Filter for Significance and top 50
+# We want highly significant (p < 0.05) and strongest fold change
+top50_resistance <- resistance_markers %>%
+  rownames_to_column("gene") %>%
+  filter(p_val_adj < 0.05) %>%
+  slice_max(n = 50, order_by = avg_log2FC)
+
+# 4. Save to Excel
+write.xlsx(top50_resistance, file = "Top50_Refractory_Markers.xlsx")
+```
+
+
+
+Transcription Factor Inference (SCENIC or DoRothEA)
+Genes don't just turn on by themselves; they are controlled by Transcription Factors (TFs) like SPI1 (PU.1) or RUNX1. Analyzing these tells you the "Master Regulator" of the refractory state.
+```{r}
+# Quick check: Look for TFs in your marker list
+tfs_to_check <- c("SPI1", "RUNX1", "CEBPA", "MYC", "GATA2")
+DotPlot(poolA_et_B, features = tfs_to_check, group.by = "response")
+```
+
+```{r}
+Idents(poolA_et_B) <- "response"
+
+# find refractory markers for every cluster compared to all remaining cells, report only the positive ones
+aml.markers <- FindAllMarkers(poolA_et_B, only.pos = TRUE)
+aml.markers %>%
+    group_by(cluster) %>%
+    dplyr::filter(avg_log2FC > 1)
+
+DotPlot(poolA_et_B, features = c("SLC35F1", "RPS24", "RPS26", "RPS4Y1", "DDX3Y", "UTY"))
+
+top20_repsonse_aml <- aml.markers %>%
+  group_by(cluster) %>%
+  slice_max(n = 20, order_by = avg_log2FC)
+
+DoHeatmap(poolA_et_B, features = top20_repsonse_aml$gene)
+
+# 1. Get the list of genes you want to plot
+genes_to_plot <- top20_repsonse_aml$gene
+
+# 2. Scale ONLY these genes (this is fast)
+# This adds them to the scale.data layer so DoHeatmap can find them
+poolA_et_B <- ScaleData(poolA_et_B, features = genes_to_plot)
+
+# 3. Now run the heatmap again
+DoHeatmap(poolA_et_B, features = genes_to_plot, group.by = "response") +
+  scale_fill_gradientn(colors = c("blue", "white", "red"))
+```
+
+# save final
+
+```{r}
+#poolA
+#saveRDS(poolA, file = "020_010_042_025_qc_drop_adt_integ_clean_annot.rds")
+
+#poolB
+#saveRDS(poolB, file = "008_034_095_017_qc_drop_adt_integ_clean_annot.rds")
+
+#poolA et B
+#saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_qc_drop_adt_integ_clean_annot.rds")
+
+```

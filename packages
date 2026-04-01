@@ -1,0 +1,14 @@
+install.packages("Seurat")
+install.packages("tidyverse")
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("SingleR")
+
+install.packages("devtools")
+library(devtools)
+devtools::install_github("phipsonlab/cellXY")
+
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("scran")

@@ -14,3 +14,5 @@ if (!require("BiocManager", quietly = TRUE))
 BiocManager::install("scran")
 
 remotes::install_github('chris-mcginnis-ucsf/DoubletFinder', force = TRUE)
+
+BiocManager::install("SingleCellExperiment")

@@ -27,3 +27,8 @@ if (!require("BiocManager", quietly = TRUE))
 
 BiocManager::install("clusterProfiler")
 install.packages("babelgene")
+
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("clusterProfiler")

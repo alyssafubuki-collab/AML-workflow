@@ -1,0 +1,237 @@
+---
+title: "annotation"
+format: html
+editor: visual
+---
+
+```{r}
+# Loading relevant libraries 
+library(tidyverse) # includes ggplot2, for data visualisation. dplyr, for data manipulation.
+library(Seurat)
+library(scuttle)
+```
+
+```{r}
+poolA_et_B <-  readRDS("020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase.rds")
+```
+
+# annotation
+
+##chargement library + atlas
+```{r}
+library(SingleR)
+library(caret)
+library(patchwork)
+library("ggplot2")
+library('viridis')
+library('pheatmap')
+
+ref <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/Ref_annotation/AML_downsampled_ref_fixed2_with_umap.rds")
+
+#ref2 <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/Ref_annotation/AML_ref_fixed2_with_umap.rds")
+```
+
+## annotation pool A et B
+### res 0.8
+```{r}
+#Idents(poolA_et_B) <- poolA_et_B$cca_clusters
+# Join layers first
+poolA_et_B <- JoinLayers(poolA_et_B)
+#poolA et B
+ref_mat_poolA_et_B  <- GetAssayData(ref, layer = "data")
+#"ref2_mat_poolA_et_B  <- GetAssayData(ref2, layer = "data")
+test_mat_poolA_et_B <- GetAssayData(poolA_et_B, layer = "data")
+#ref_labels <- as.character(ref$Cell.Type)
+#names(ref_labels) <- colnames(ref_mat_poolA_et_B)
+
+#head(test_mat_poolA_et_B)
+#head(ref_mat_poolA_et_B)
+
+common_genes_poolA_et_B <- intersect(rownames(ref_mat_poolA_et_B), rownames(test_mat_poolA_et_B))
+length(common_genes_poolA_et_B)
+
+#sce <- as.SingleCellExperiment(poolA_et_B)
+
+pred_poolA_et_B <- SingleR(test = test_mat_poolA_et_B, ref = ref_mat_poolA_et_B, labels = ref$Cell.Type, de.method="wilcox",  de.n=20)
+#colnames(pred_poolA_et_B)
+
+#head(sort(table(pred_poolA_et_B$labels), decreasing=TRUE))
+#table(pred_poolA_et_B$labels)
+#head(pred_poolA_et_B$labels)
+
+pred_poolA_et_B$scores[1:10,]
+plotScoreHeatmap(pred_poolA_et_B)
+
+pred2_poolA_et_B <- SingleR(test = test_mat_poolA_et_B, ref = ref_mat_poolA_et_B, labels = ref$HSPC.Cell.Type, de.method="wilcox", de.n=20)
+
+#colnames(pred2_poolA_et_B)
+#table(pred2_poolA_et_B$labels)
+#head(sort(table(pred2_poolA_et_B$labels), decreasing=TRUE))
+
+pred2_poolA_et_B$scores[1:10,]
+plotScoreHeatmap(pred2_poolA_et_B)
+
+poolA_et_B$SingleR_main_poolA_et_B  <- pred_poolA_et_B$labels
+poolA_et_B$SingleR_fine_poolA_et_B  <- pred2_poolA_et_B$labels
+poolA_et_B@meta.data[["SingleR_main_poolA_et_B"]]
+poolA_et_B@meta.data[["SingleR_fine_poolA_et_B"]]
+
+options(ggrepel.max.overlaps = Inf)
+
+annot_main <- DimPlot(
+  poolA_et_B,
+  reduction = "umap.cca_0_8",
+  group.by = "SingleR_main_poolA_et_B",
+  label = TRUE, label.size = 4, pt.size = 0.3,
+  repel = TRUE
+) + theme_bw()
+
+annot_fine <- DimPlot(
+  poolA_et_B,
+  reduction = "umap.cca",
+  group.by = "SingleR_fine_poolA_et_B",
+  label = TRUE, label.size = 4, pt.size = 0.3,
+  repel = TRUE
+) + theme_bw()
+
+ggsave( "annot_main.jpeg",annot_main, width = 15)
+ggsave( "annot_fine.jpeg",annot_fine, width = 15)
+
+table(poolA_et_B$cca_clusters)
+
+DimPlot(
+  poolA_et_B,
+  reduction = "umap.cca",
+  group.by = "cca_clusters",
+  label = TRUE,
+  repel = TRUE
+) + theme_bw()
+
+DimPlot(
+  poolA_et_B,
+  reduction = "umap.cca",
+  group.by = "seurat_clusters",
+  label = TRUE,
+  repel = TRUE
+) + theme_bw()
+```
+
+## nbr cell par celltype
+
+```{r}
+count_per_cell_type <- poolA_et_B@meta.data %>%
+  count(SingleR_fine_poolA_et_B) %>%
+  ggplot(aes(x = SingleR_fine_poolA_et_B, y = n, fill = SingleR_fine_poolA_et_B)) +
+  geom_bar(stat = "identity") +
+  theme_bw() +
+  labs(
+    x = "Cell Type",
+    y = "Nombre de cellules"
+  )
+
+
+ggsave( "cellcount_per_cell_type_fine.jpeg",count_per_cell_type, width = 15, height = 10)
+
+count_per_cell_type_main <- poolA_et_B@meta.data %>%
+  count(SingleR_main_poolA_et_B) %>%
+  ggplot(aes(x = SingleR_main_poolA_et_B, y = n, fill = SingleR_main_poolA_et_B)) +
+  geom_bar(stat = "identity") +
+  theme_bw() +
+  labs(
+    x = "Cell Type",
+    y = "Nombre de cellules"
+  )
+
+
+ggsave( "cellcount_per_cell_type_main.jpeg",count_per_cell_type_main, width = 15, height = 10)
+```
+
+## find marker par cell type
+### res 0.8
+```{r}
+#poolA et B 
+#cell type
+Idents(poolA_et_B) <- "SingleR_main_poolA_et_B"
+markers_poolA_et_B_annot_main <-  FindAllMarkers(
+  poolA_et_B,
+  only.pos = TRUE,
+  min.pct = 0.10,
+  logfc.threshold = 0.25
+)
+
+top30_main <- markers_poolA_et_B_annot_main %>%
+  group_by(cluster) %>%
+  slice_max(n = 30, order_by = avg_log2FC)
+
+write.csv(markers_poolA_et_B_annot_main, "markers_poolA_et_B_annot_main_filtered.csv")
+write.csv(top30_main, "markers_poolA_et_B_annot_main_top30_filtered.csv")
+
+#hspc cell type
+Idents(poolA_et_B) <- "SingleR_fine_poolA_et_B"
+markers_poolA_et_B_annot_fine <-  FindAllMarkers(
+  poolA_et_B,
+  only.pos = TRUE,
+  min.pct = 0.10,
+  logfc.threshold = 0.25
+)
+
+top30_fine <- markers_poolA_et_B_annot_fine %>%
+  group_by(cluster) %>%
+  slice_max(n = 30, order_by = avg_log2FC)
+
+write.csv( markers_poolA_et_B_annot_fine, "markers_poolA_et_B_annot_fine_filtered.csv")
+write.csv( top30_fine, "markers_poolA_et_B_annot_fine_top30_filtered.csv")
+
+FeaturePlot(poolA_et_B, features = c("TSHZ2", "LEF1" , "LINC01891", "CD28", "ICOS", "CAMK4"), reduction = "umap.cca_0_8")
+VlnPlot(poolA_et_B, features =  c("TSHZ2", "LEF1" , "LINC01891", "CD28", "ICOS", "CAMK4"))
+DimPlot(poolA_et_B, reduction = "umap.cca",label = TRUE, label.size = 4, pt.size = 0.3)
+```
+
+## find marker par cluster
+### res 0.8
+```{r}
+#poolA et B 
+#cell type
+Idents(poolA_et_B) <- "cca_clusters"
+markers_poolA_et_B_cluster<-  FindAllMarkers(
+  poolA_et_B,
+  only.pos = TRUE,
+  min.pct = 0.10,
+  logfc.threshold = 0.25
+)
+
+top30_cluster <- markers_poolA_et_B_cluster %>%
+  group_by(cluster) %>%
+  slice_max(n = 30, order_by = avg_log2FC)
+
+write.csv(markers_poolA_et_B_cluster, "markers_poolA_et_B_cluster_res_0_4.csv")
+write.csv(top30_cluster, "markers_poolA_et_B_top30_cluster_res_0_4.csv")
+
+FeaturePlot(poolA_et_B, features = c("TYROBP",
+"LST1",
+"FCER1G",
+"SPI1",
+"CSF1R",
+"CTSS",
+"LGALS3",
+"AIF1",
+"MS4A7",
+"FCGR3A",
+"S100A8",
+"S100A9",
+"CD14",
+"CD68",
+"HLA-DRA",
+"HLA-DRB1",
+"LGALS1",
+"MNDA",
+"FCN1",
+"LYZ"),reduction = "umap.cca_0_8")
+VlnPlot(poolA_et_B, features = top30_cluster)
+```
+
+#save
+```{r}
+saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_sex_phase_annot.rds")
+```
+

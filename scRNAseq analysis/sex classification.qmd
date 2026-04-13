@@ -1,0 +1,126 @@
+---
+title: "sex classification"
+format: html
+editor: visual
+---
+
+```{r}
+# Loading relevant libraries 
+library(tidyverse) # includes ggplot2, for data visualisation. dplyr, for data manipulation.
+library(Seurat)
+library(scuttle)
+```
+
+```{r}
+poolA_et_B <-  readRDS("020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_sex_phase_annot.rds")
+```
+
+## sex classification
+
+```{r}
+library(org.Hs.eg.db)
+library(cellXY)
+
+
+# 1. Extraire les counts bruts
+# JoinLayers est crucial ici pour avoir une seule matrice
+#poolA_et_B <- JoinLayers(poolA_et_B)
+counts_bruts <- GetAssayData(poolA_et_B, assay = "RNA", layer = "counts")
+
+# 2. Conversion en matrice standard (Dense Matrix)
+# C'est l'étape qui règle l'erreur "S4 to vector"
+counts_matrix <- as.matrix(counts_bruts)
+
+# 3. Vérification des noms de gènes
+# cellXY a besoin de SYMBOLS (ex: XIST, pas ENSG000...)
+# Si vos gènes sont déjà des Symbols, passez à l'étape 4.
+# Sinon, utilisez ce bloc pour convertir :
+# ann <- select(org.Hs.eg.db, keys=rownames(counts_matrix), 
+#               columns=c("SYMBOL"), keytype="ENSEMBL")
+# m <- match(rownames(counts_matrix), ann$ENSEMBL)
+# rownames(counts_matrix) <- ann$SYMBOL[m]
+
+# 4. Lancer la classification
+# On donne la matrice 'counts_matrix' directement, pas l'objet Seurat
+sex_preds <- classifySex(counts_matrix, genome = "Hs")
+
+# 5. Vérifier et Intégrer
+table(sex_preds$prediction)
+
+# Ajouter au metadata Seurat
+poolA_et_B$predicted_sex <- sex_preds$prediction
+
+# 6. Le Boxplot de validation (comme dans l'exemple)
+boxplot(counts_matrix["XIST", ] ~ poolA_et_B$predicted_sex, 
+        main="Validation par XIST", ylab="Expression Log", col=c("pink", "lightblue"))
+```
+
+```{r}
+library(ggplot2)
+
+df_sex <- as.data.frame(table(poolA_et_B$patient, poolA_et_B$predicted_sex))
+colnames(df_sex) <- c("Patient", "Sexe", "Nombre_de_Cellules")
+
+ggplot(df_sex, aes(x = Patient, y = Nombre_de_Cellules, fill = Sexe)) +
+  geom_bar(stat = "identity") + # "fill" pour avoir des pourcentages (0 à 100%)
+  scale_fill_manual(values = c("Female" = "pink", "Male" = "lightblue")) +
+  theme_minimal() +
+  labs(title = "Répartition du Sexe par Patient", 
+       y = "Proportion de cellules", 
+       x = "Identifiant Patient")
+
+table(poolA_et_B$patient, poolA_et_B$predicted_sex)
+```
+
+```{r}
+library(ggplot2)
+
+# EXtraction de la colonne sex en vecteur simple
+sex_vector <- as.character(poolA_et_B$predicted_sex)
+
+# creation d'un count table et convertion en data frame
+sex_counts <- as.data.frame(table(sex_vector))
+colnames(sex_counts) <- c("Sexe", "Nombre_de_cellules")
+
+ggplot(sex_counts, aes(x = Sexe, y = Nombre_de_cellules, fill = Sexe)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("Female" = "pink", "Male" = "lightblue")) +
+  theme_minimal() +
+  labs(title = "Répartition Globale du Sexe", 
+       subtitle = "Nombre total de cellules identifiées",
+       x = "Sexe Prédit", 
+       y = "Nombre de cellules")
+```
+
+### filtration des gene sex
+
+met 2h30 environ
+
+```{r}
+# Comparer Réfractaire vs Répondeur en ignorant l'effet du sexe
+# On utilise l'argument 'latent.vars' pour corriger statistiquement le biais
+clean_markers <- FindMarkers(
+  poolA_et_B, 
+  group.by = "response", 
+  ident.1 = "refractory", 
+  ident.2 = "responder",
+  latent.vars = "predicted_sex", # CECI est la clé pour "effacer" le bruit du sexe
+  test.use = "LR" # Nécessaire quand on utilise latent.vars
+)
+
+# Regardez le nouveau top 10
+head(clean_markers, 10)
+
+# Mise à jour du Heatmap
+DoHeatmap(poolA_et_B, 
+          features = clean_markers, 
+          group.by = "response", 
+          size = 4) + 
+  scale_fill_gradientn(colors = c("blue", "white", "red")) +
+  ggtitle("Signature de Résistance (Corrigée du Sexe)")
+```
+
+#save
+```{r}
+saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex.rds")
+```

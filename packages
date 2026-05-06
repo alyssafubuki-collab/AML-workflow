@@ -37,3 +37,5 @@ if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
 BiocManager::install("limma")
+
+devtools::install_github('satijalab/seurat-data')

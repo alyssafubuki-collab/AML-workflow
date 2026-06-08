@@ -1,0 +1,1019 @@
+---
+title: "Mapping_TransfertLearning_Pre_Post_AML_sec"
+author: "Rahma AIT MAHFOUD"
+format:
+  html:
+    #self-contained: true
+    echo: false
+    message: false
+    warning: false
+
+editor: visual
+---
+
+```{r}
+library(Seurat)
+library(ggplot2)
+library(patchwork) 
+library(dplyr) # ◄— BIEN VÉRIFIER QUE CETTE LIGNE EST EXÉCUTÉE
+#intg_obj  <- readRDS("only_for_ED_Rahma/pool_integrated.rds")
+ref_pre <-  readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/aml2ndaire/only_for_ED_Rahma/pool_pre_immature.rds")
+ref_pre$immature_annot2 <- droplevels(ref_pre$immature_annot2)
+pool2 <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/aml2ndaire/pool_integrated.rds")
+```
+
+```{r}
+ref_pre <- RunUMAP(ref_pre,
+                   reduction = "integrated.cca",  # ← la réduction utilisée à l'origine
+                   dims = 1:30,
+                   reduction.name = "umap.integrated",
+                   return.model = TRUE)
+
+# Vérifier
+!is.null(ref_pre@reductions$umap.integrated@misc$model)
+# Doit retourner TRUE
+```
+
+```{r}
+# Extraire les cellules post depuis l'objet intégré
+query_post <- subset(pool2, subset = timepoint == "post")
+```
+
+```{r}
+anchors <- FindTransferAnchors(
+  reference = ref_pre,
+  query = query_post,
+  dims = 1:30,
+  reference.reduction = "integrated.cca"  # ← cohérent
+)
+
+query_post <- MapQuery(
+  anchorset = anchors,
+  reference = ref_pre,
+  query = query_post,
+  refdata = list(LSC_type = "immature_annot2"),
+  reference.reduction = "integrated.cca",
+  reduction.model = "umap.integrated"  
+)
+```
+
+
+```{r}
+ref_pre$origin <- "pre"
+query_post$origin <- "post"
+ref_pre$predicted.LSC_type <- ref_pre$immature_annot2
+
+ref_pre$immature_annot2 <- recode(ref_pre$immature_annot2, "LMPP-like" = "LMPP-LSC")
+ref_pre$predicted.LSC_type <- recode(ref_pre$predicted.LSC_type, "LMPP-like" = "LMPP-LSC")
+
+combined <- merge(ref_pre, query_post)
+palette_celltype <- c(
+  "LMPP-LSC"   = "#4E79A7",
+  "Stress-LSC"  = "#E15759",
+  "MEP-LSC"     = "#76B7B2",
+  "HSC-LSC"     = "#59A14F",
+  "Cycling-LSC" = "#9C755F"
+)
+
+```
+
+```{r}
+p3 <- DimPlot(ref_pre, 
+              reduction = "umap.integrated",
+              group.by = "immature_annot2",
+              cols = palette_celltype, split.by = "response") +
+      ggtitle("Pre-traitement") +
+      scale_x_reverse()  # ← inverser X
+query_post$predicted.LSC_type <- factor(query_post$predicted.LSC_type, levels = c("LMPP-LSC", "Stress-LSC", "MEP-LSC", "HSC-LSC", "Cycling-LSC"))
+p4 <- DimPlot(query_post, 
+              reduction = "ref.umap",
+              group.by = "predicted.LSC_type",
+              cols = palette_celltype, split.by = "response") +
+      ggtitle("Post-traitement") +
+      scale_x_reverse()  # ← même chose pour post
+
+#p3 | p4
+```
+
+```{r}
+p3
+p4
+```
+
+```{r}
+library(tidyr)
+
+Idents(query_post) <- "predicted.LSC_type"
+
+markers_all <- FindAllMarkers(
+  object = query_post,
+  only.pos = TRUE,          # marqueurs positifs
+  test.use = "wilcox",      # standard
+  min.pct = 0.25,
+  logfc.threshold = 0.5
+)
+
+markers_sig <- markers_all %>%
+  filter(p_val_adj < 0.05)
+
+top50_by_cluster <- markers_sig %>%
+  group_by(cluster) %>%
+  arrange(desc(avg_log2FC), .by_group = TRUE) %>%
+  slice_head(n = 50) %>%
+  ungroup()
+
+
+top50_wide <- top50_by_cluster %>%
+  dplyr::select(cluster, gene) %>%
+  group_by(cluster) %>%
+  mutate(rank = row_number()) %>%
+  ungroup() %>%
+  pivot_wider(
+    names_from = rank,
+    values_from = gene,
+    names_prefix = "top"
+  )
+
+
+table_markers_top50 <- top50_wide
+
+
+markers_top50_long <- top50_by_cluster
+
+
+
+table_markers_top50
+
+write.csv(markers_top50_long, "gene_markers_merged_clusters.csv")
+```
+
+#```{r}
+library(dplyr)
+
+# 1. Nettoyage de tes marqueurs "Post" (Vérifie bien que cet objet n'est pas décalé lui aussi !)
+markers_post_clean <- markers_sig %>%
+  filter(p_val_adj < 0.05 & avg_log2FC > 0.25)
+
+# 2. Extraction des gènes par cluster depuis ton fichier Pre corrigé
+#signature_pre_clean <- gene_markers_merged_clusters_pool_pre %>%
+ # filter(p_val_adj < 0.05 & avg_log2FC > 0.25) %>%
+  #select(gene, cluster_pre = cluster)
+
+# 3. Intersection et comptage
+overlap_analysis <- markers_post_clean %>%
+  inner_join(signature_pre_clean, by = "gene") %>%
+  group_by(cluster, cluster_pre) %>%
+  summarise(genes_en_commun = n(), .groups = 'drop') %>%
+  arrange(cluster, desc(genes_en_commun))
+
+# Afficher le résultat
+print(overlap_analysis)
+#```
+
+#```{r}
+library(Seurat)
+library(dplyr)
+
+# 1. Extraire les vrais gènes du top 50 pour chaque cluster Pre
+liste_signatures <- gene_markers_merged_clusters_pool_pre %>%
+  group_by(cluster) %>%
+  slice_max(order_by = avg_log2FC, n = 50) %>%
+  split(.$cluster) %>%
+  lapply(function(x) x$gene)
+
+# 2. Calculer les scores dans l'objet RDS (les gènes seront maintenant trouvés)
+query_post <- AddModuleScore(
+  object = query_post,
+  features = liste_signatures,
+  name = "Signature_Pre_"
+)
+
+# 3. Renommer les colonnes de métadonnées avec les vrais noms de clusters Pre
+noms_signatures <- paste0("Signature_Pre_", 1:length(liste_signatures))
+for(i in 1:length(liste_signatures)) {
+  nom_original <- names(liste_signatures)[i]
+  query_post@meta.data[[nom_original]] <- query_post@meta.data[[noms_signatures[i]]]
+  query_post@meta.data[[noms_signatures[i]]] <- NULL
+}
+
+# 4. Exemple de visualisation de co-expression dans une même cellule
+# (Remplace par les vrais noms d'en-tête qui t'intéressent, ex: "LMPP-LSC" et "Cycling-LSC")
+# Visualiser toutes les signatures d'un coup face à tes clusters Post
+DotPlot(
+  object = query_post, 
+  features = c("LMPP-LSC", "Cycling-LSC", "Stress-LSC", "MEP-LSC", "HSC-LSC"),
+  group.by = "predicted.LSC_type" # ou le nom de ta métadonnée de clusters Post
+) + RotatedAxis() + scale_color_viridis_c()
+
+# Visualiser la superposition de deux signatures directement sur l'UMAP
+FeaturePlot(
+  object = query_post, 
+  features = c("LMPP-LSC", "Stress-LSC"), 
+  blend = TRUE,
+  cols = c("lightgrey", "red", "green"), reduction = "ref.umap"
+) + scale_x_reverse() 
+
+# Un graphique en violon côte à côte pour comparer deux signatures phares
+VlnPlot(
+  object = query_post, 
+  features = c("LMPP-LSC", "Stress-LSC"), 
+  ncol = 1,
+  pt.size = 0 # Met 0 pour retirer les points individuels et voir proprement la forme du violon
+)
+#```
+
+## Cell composition par Barplot
+
+#```{r}
+library(ggplot2)
+library(dplyr)
+library(scales) 
+theme_clean <- theme_minimal(base_size = 12) +
+  theme(
+    plot.title       = element_text(face = "bold", size = 14, margin = margin(b = 6)),
+    plot.subtitle    = element_text(color = "grey40", size = 10, margin = margin(b = 12)),
+    axis.text.x      = element_text(angle = 40, hjust = 1, size = 10),
+    axis.text.y      = element_text(size = 10),
+    axis.title       = element_text(size = 11, color = "grey30"),
+    legend.title     = element_text(face = "bold", size = 10),
+    legend.text      = element_text(size = 9),
+    legend.position  = "right",
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_line(color = "grey90"),
+    panel.grid.minor   = element_blank(),
+    strip.text         = element_text(face = "bold"),
+    plot.margin        = margin(10, 15, 10, 10)
+  )
+
+
+df <- data.frame(
+  celltype         = ref_pre$immature_annot2,
+  patient_response = ref_pre$patient_response,
+  response         = ref_pre$response
+)
+
+
+
+count_response <- df %>%
+  dplyr::count(response, celltype, name = "n_cells") %>%
+  group_by(response) %>%
+  mutate(pct = n_cells / sum(n_cells)) %>%
+  ungroup()
+
+bp1 <- ggplot(count_response,
+             aes(x = response, y = n_cells, fill = celltype)) +
+  geom_bar(stat = "identity", width = 0.7, color = "white", linewidth = 0.3) +
+  scale_fill_manual(values = palette_celltype) +
+  scale_y_continuous(labels = label_comma(), expand = expansion(mult = c(0, 0.05))) +
+  labs(
+    title    = "",
+    subtitle = "Pre treatment",
+    x        = "",
+    y        = "Nb cell",
+    fill     = "Cell type"
+  ) +
+  theme_clean
+
+bp1_prop <- ggplot(count_response,
+                  aes(x = response, y = pct, fill = celltype)) +
+  geom_bar(stat = "identity", width = 0.7, color = "white", linewidth = 0.3) +
+  scale_fill_manual(values = palette_celltype) +
+  scale_y_continuous(labels = percent_format(), expand = expansion(mult = c(0, 0.03))) +
+  labs(
+    title    = "",
+    subtitle = "Pre treatment",
+    x        = "",
+    y        = "Cell Prop %",
+    fill     = "Cell type"
+  ) +
+  theme_clean
+
+
+#```
+
+#```{r}
+
+theme_clean <- theme_minimal(base_size = 12) +
+  theme(
+    plot.title       = element_text(face = "bold", size = 14, margin = margin(b = 6)),
+    plot.subtitle    = element_text(color = "grey40", size = 10, margin = margin(b = 12)),
+    axis.text.x      = element_text(angle = 40, hjust = 1, size = 10),
+    axis.text.y      = element_text(size = 10),
+    axis.title       = element_text(size = 11, color = "grey30"),
+    legend.title     = element_text(face = "bold", size = 10),
+    legend.text      = element_text(size = 9),
+    legend.position  = "right",
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_line(color = "grey90"),
+    panel.grid.minor   = element_blank(),
+    strip.text         = element_text(face = "bold"),
+    plot.margin        = margin(10, 15, 10, 10)
+  )
+
+
+query_post$predicted.LSC_type <- factor(query_post$predicted.LSC_type, levels = c("LMPP-LSC", "Stress-LSC", "MEP-LSC", "HSC-LSC", "Cycling-LSC"))
+df2 <- data.frame(
+  celltype         = query_post$predicted.LSC_type,
+  patient_response = query_post$patient_response,
+  response         = query_post$response
+)
+
+
+count_patient <- df2 %>%
+  dplyr::count(patient_response, celltype, name = "n_cells") %>%
+  group_by(patient_response) %>%
+  mutate(pct = n_cells / sum(n_cells)) %>%
+  ungroup()
+
+bp2 <- ggplot(count_patient,
+             aes(x = patient_response, y = n_cells, fill = celltype)) +
+  geom_bar(stat = "identity", width = 0.7, color = "white", linewidth = 0.3) +
+  scale_fill_manual(values = palette_celltype) +
+  scale_y_continuous(labels = label_comma(), expand = expansion(mult = c(0, 0.05))) +
+  labs(
+    title    = "Cell type composition per patient",
+    subtitle = "Post treatment",
+    y        = "Nb of cels",
+    fill     = "cell type"
+  ) +
+  theme_clean
+
+
+bp2_prop <- ggplot(count_patient,
+                  aes(x = patient_response, y = pct, fill = celltype)) +
+  geom_bar(stat = "identity", width = 0.7, color = "white", linewidth = 0.3) +
+  scale_fill_manual(values = palette_celltype) +
+  scale_y_continuous(labels = percent_format(), expand = expansion(mult = c(0, 0.03))) +
+  labs(
+    title    = "Cell type composition per patient",
+    subtitle = "Post treatment",
+    x        = "",
+    y        = "Cell Prop %",
+    fill     = "Cell type"
+  ) +
+  theme_clean
+
+
+count_response <- df2 %>%
+  dplyr::count(response, celltype, name = "n_cells") %>%
+  group_by(response) %>%
+  mutate(pct = n_cells / sum(n_cells)) %>%
+  ungroup()
+
+bp3 <- ggplot(count_response,
+             aes(x = response, y = n_cells, fill = celltype)) +
+  geom_bar(stat = "identity", width = 0.7, color = "white", linewidth = 0.3) +
+  scale_fill_manual(values = palette_celltype) +
+  scale_y_continuous(labels = label_comma(), expand = expansion(mult = c(0, 0.05))) +
+  labs(
+    title    = "",
+    subtitle = "Post treatment",
+    x        = "",
+    y        = "Nb cell",
+    fill     = "Cell type"
+  ) +
+  theme_clean
+
+bp3_prop <- ggplot(count_response,
+                  aes(x = response, y = pct, fill = celltype)) +
+  geom_bar(stat = "identity", width = 0.7, color = "white", linewidth = 0.3) +
+  scale_fill_manual(values = palette_celltype) +
+  scale_y_continuous(labels = percent_format(), expand = expansion(mult = c(0, 0.03))) +
+  labs(
+    title    = "",
+    subtitle = "Post treatment",
+    x        = "",
+    y        = "Cell Prop %",
+    fill     = "Cell type"
+  ) +
+  theme_clean
+
+
+bp1 | bp1_prop
+bp1_prop |bp3_prop
+#```
+
+```{r}
+#| fig-width: 14
+#| fig-height: 13
+
+library(Seurat)
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+library(ggrepel)
+
+# ── Paramètres ──────────────────────────────────────────────────────────────
+FC_THRESH  <- 1
+ADJ_THRESH <- 0.05
+
+# ── Préparation des données ─────────────────────────────────────────────────
+deg_all <- deg_all %>%
+  
+  # retirer les gènes du sexe
+  filter(!gene %in% sex_genes) %>%
+  
+  mutate(
+    color_group = case_when(
+      p_val_adj < ADJ_THRESH & avg_log2FC >  FC_THRESH ~ "Up in responder",
+      p_val_adj < ADJ_THRESH & avg_log2FC < -FC_THRESH ~ "Up in refractory",
+      TRUE                                             ~ "NS"
+    )
+  )
+
+
+volcano_plot <- function(deg_all, title, 
+                         lfc_thresh = 0.5, pval_thresh = 0.05,
+                         n_label = 20) { # n_label est maintenant fixé à 20 par condition
+  
+  df <- deg_all %>%
+    mutate(
+      neg_log10_p = -log10(p_val_adj + 1e-300),
+      direction   = case_when(
+        p_val_adj < ADJ_THRESH & avg_log2FC >  FC_THRESH ~ "Up in responder",
+      p_val_adj < ADJ_THRESH & avg_log2FC < -FC_THRESH ~ "Up in refractory",
+        TRUE ~ "NS"
+      ),
+      gene = rownames(.)
+    )
+  
+  # ── Top 20 pour les gènes augmentés en Post ──────────────────────────────
+  top_post <- df %>%
+    filter(direction == "Up in responder") %>%
+    arrange(p_val_adj, desc(avg_log2FC)) %>%
+    slice_head(n = n_label)
+  
+  # ── Top 20 pour les gènes augmentés en Pre ───────────────────────────────
+  top_pre <- df %>%
+    filter(direction == "Up in refractory") %>%
+    arrange(p_val_adj, avg_log2FC) %>%
+    slice_head(n = n_label)
+  
+  # Fusion des deux listes (20 + 20 = 40 gènes au maximum)
+  top_genes <- bind_rows(top_post, top_pre)
+  
+  color_vals <- c("Up in responder" = "blue", "Up in refractory" = "red", "NS" = "grey75")
+  
+  ggplot(df, aes(x = avg_log2FC, y = neg_log10_p, color = direction)) +
+    geom_point(aes(size = direction), alpha = 0.6) +
+    scale_size_manual(values = c("Up in responder" = 1.8, "Up in refractory" = 1.8, "NS" = 0.8),
+                      guide = "none") +
+    scale_color_manual(values = color_vals,
+                       name = "Regulation") +
+    geom_vline(xintercept = c(-lfc_thresh, lfc_thresh),
+               linetype = "dashed", color = "grey40", linewidth = 0.4) +
+    geom_hline(yintercept = -log10(pval_thresh),
+               linetype = "dashed", color = "grey40", linewidth = 0.4) +
+    # Affichage des étiquettes (max 40 gènes)
+    geom_text_repel(data = top_genes,
+                    aes(label = gene),
+                    size = 2.4,             # Taille légèrement réduite pour éviter les chevauchements
+                    max.overlaps = 50,       # Augmenté pour forcer l'affichage des 40 gènes
+                    force = 1.5,             # Force de répulsion accrue pour étaler les noms
+                    segment.color = "grey50", 
+                    segment.size = 0.25,
+                    show.legend = FALSE) +
+    labs(
+      title    = title,
+      x        = "avg log2FC  (repondeur / refractaire)",
+      y        = "-log10 (adj. p-value)"
+    ) +
+    theme_minimal(base_size = 11) +
+    theme(
+      plot.title       = element_text(face = "bold", size = 11),
+      legend.position  = "right",
+      panel.grid.minor = element_blank()
+    )
+}
+
+volcano_plot
+
+```
+
+## DEG Pre vs post treatment ( pour refractaire et repondeur)
+
+```{r}
+#| fig-width: 10
+#| fig-height: 10
+
+library(Seurat)
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+library(ggrepel)
+
+
+
+cell_types <- c("LMPP-LSC", "Stress-LSC", "MEP-LSC", "HSC-LSC", "Cycling-LSC")
+response_groups <- unique(ref_pre$response)  
+
+
+ref_pre$timepoint        <- "pre"
+ref_pre$celltype_column  <- as.character(ref_pre$immature_annot2)
+
+query_post$timepoint       <- "post"
+query_post$celltype_column <- as.character(query_post$predicted.LSC_type)
+
+
+combined <- merge(ref_pre, query_post, merge.dr = FALSE)
+combined <- JoinLayers(combined)
+combined$timepoint       <- factor(combined$timepoint, levels = c("pre", "post"))
+combined$celltype_column <- factor(combined$celltype_column, levels = cell_types)
+
+
+Idents(combined) <- "timepoint"
+
+volcano_plot <- function(deg_df, title, 
+                         lfc_thresh = 0.5, pval_thresh = 0.05,
+                         n_label = 10) { # n_label est maintenant fixé à 20 par condition
+  
+  df <- deg_df %>%
+    mutate(
+      neg_log10_p = -log10(p_val_adj + 1e-300),
+      direction   = case_when(
+        avg_log2FC >  lfc_thresh & p_val_adj < pval_thresh ~ "Up in Post",
+        avg_log2FC < -lfc_thresh & p_val_adj < pval_thresh ~ "Up in Pre",
+        TRUE ~ "NS"
+      ),
+      gene = rownames(.)
+    )
+  
+  # ── Top 20 pour les gènes augmentés en Post ──────────────────────────────
+  top_post <- df %>%
+    filter(direction == "Up in Post") %>%
+    arrange(p_val_adj, desc(avg_log2FC)) %>%
+    slice_head(n = n_label)
+  
+  # ── Top 20 pour les gènes augmentés en Pre ───────────────────────────────
+  top_pre <- df %>%
+    filter(direction == "Up in Pre") %>%
+    arrange(p_val_adj, avg_log2FC) %>%
+    slice_head(n = n_label)
+  
+  # Fusion des deux listes (20 + 20 = 40 gènes au maximum)
+  top_genes <- bind_rows(top_post, top_pre)
+  
+  color_vals <- c("Up in Post" = "#4E7327", "Up in Pre" = "blue2", "NS" = "grey75")
+  
+  ggplot(df, aes(x = avg_log2FC, y = neg_log10_p, color = direction)) +
+    geom_point(aes(size = direction), alpha = 0.6) +
+    scale_size_manual(values = c("Up in Post" = 1.8, "Up in Pre" = 1.8, "NS" = 0.8),
+                      guide = "none") +
+    scale_color_manual(values = color_vals,
+                       name = "Regulation") +
+    geom_vline(xintercept = c(-lfc_thresh, lfc_thresh),
+               linetype = "dashed", color = "grey40", linewidth = 0.4) +
+    geom_hline(yintercept = -log10(pval_thresh),
+               linetype = "dashed", color = "grey40", linewidth = 0.4) +
+    # Affichage des étiquettes (max 40 gènes)
+    geom_text_repel(data = top_genes,
+                    aes(label = gene),
+                    size = 2.4,             # Taille légèrement réduite pour éviter les chevauchements
+                    max.overlaps = 50,       # Augmenté pour forcer l'affichage des 40 gènes
+                    force = 1.5,             # Force de répulsion accrue pour étaler les noms
+                    segment.color = "grey50", 
+                    segment.size = 0.25,
+                    show.legend = FALSE) +
+    labs(
+      title    = title,
+      x        = "avg log2FC  (post / pre)",
+      y        = "-log10 (adj. p-value)"
+    ) +
+    theme_minimal(base_size = 11) +
+    theme(
+      plot.title       = element_text(face = "bold", size = 11),
+      legend.position  = "right",
+      panel.grid.minor = element_blank()
+    )
+}
+
+
+deg_results <- list()   
+
+for (resp in response_groups) {
+  
+  plots_resp <- list()
+  
+  for (ct in cell_types) {
+    
+    message(" ", resp, " | ", ct)
+    
+
+    cells_sub <- WhichCells(combined,
+                            expression = response == resp & 
+                                         celltype_column == ct)
+    
+    if (length(cells_sub) < 10) {
+      message(" Trop peu de cellules — ignoré")
+      next
+    }
+    
+    sub_obj <- subset(combined, cells = cells_sub)
+    Idents(sub_obj) <- "timepoint"
+    
+
+    if (!all(c("pre", "post") %in% levels(droplevels(Idents(sub_obj))))) {
+      message(" Timepoint manquant — ignoré")
+      next
+    }
+    
+    deg <- tryCatch(
+      FindMarkers(sub_obj,
+                  ident.1    = "post",
+                  ident.2    = "pre",
+                  test.use   = "wilcox",
+                  min.pct    = 0.1,
+                  logfc.threshold = 0.25),
+      error = function(e) { message("  ✗ Erreur : ", e$message); NULL }
+    )
+    
+    if (is.null(deg) || nrow(deg) == 0) next
+    
+    key <- paste0(resp, "__", ct)
+    deg_results[[key]] <- deg
+    
+    # Volcano
+    p <- volcano_plot(
+      deg_df = deg,
+      title  = paste0(ct, "\n(", resp, ")")
+    )
+    plots_resp[[ct]] <- p
+  }
+  
+  
+  if (length(plots_resp) > 0) {
+    grid <- wrap_plots(plots_resp, ncol = 2) +
+      plot_annotation(
+        title    = paste0("DEG Post vs Pre treatement — ", resp),
+        subtitle = "",
+        theme    = theme(
+          plot.title    = element_text(face = "bold", size = 14),
+          plot.subtitle = element_text(color = "grey40", size = 10)
+        )
+      )
+    print(grid)
+  }
+}
+
+
+
+for (key in names(deg_results)) {
+  df_out <- deg_results[[key]] %>%
+    tibble::rownames_to_column("gene")
+  write.csv(df_out,
+            file = paste0("DEG_", gsub(" ", "_", key), ".csv"),
+            row.names = FALSE)
+}
+```
+
+```{r}
+#| fig-width: 10
+#| fig-height: 8
+volcano_plot2 <- function(deg_df, title, 
+                         lfc_thresh = 0.5, pval_thresh = 0.05,
+                         n_label = 20) {
+  
+  df <- deg_df %>%
+    mutate(
+      neg_log10_p = -log10(p_val_adj + 1e-300),
+      direction   = case_when(
+        avg_log2FC >  lfc_thresh & p_val_adj < pval_thresh ~ "Up in Post",
+        avg_log2FC < -lfc_thresh & p_val_adj < pval_thresh ~ "Up in Pre",
+        TRUE ~ "NS"
+      ),
+      gene = rownames(.)
+    )
+  
+  top_genes <- df %>%
+    filter(direction != "NS") %>%
+    arrange(p_val_adj, desc(abs(avg_log2FC))) %>%
+    slice_head(n = n_label)
+  
+  color_vals <- c("Up in Post" = "#4E7327", "Up in Pre" = "blue2", "NS" = "grey75")
+  
+  ggplot(df, aes(x = avg_log2FC, y = neg_log10_p, color = direction)) +
+    geom_point(aes(size = direction), alpha = 0.6) +
+    scale_size_manual(values = c("Up in Post" = 1.8, "Up in Pre" = 1.8, "NS" = 0.8),
+                      guide = "none") +
+    scale_color_manual(values = color_vals,
+                       name = "Regulation") +
+    geom_vline(xintercept = c(-lfc_thresh, lfc_thresh),
+               linetype = "dashed", color = "grey40", linewidth = 0.4) +
+    geom_hline(yintercept = -log10(pval_thresh),
+               linetype = "dashed", color = "grey40", linewidth = 0.4) +
+    geom_text_repel(data = top_genes,
+                    aes(label = gene),
+                    size = 2.8, max.overlaps = 20,
+                    segment.color = "grey50", segment.size = 0.3,
+                    show.legend = FALSE) +
+    labs(
+      title    = title,
+      x        = "avg log2FC  (post / pre)",
+      y        = "-log10 (adj. p-value)"
+    ) +
+    theme_minimal(base_size = 11) +
+    theme(
+      plot.title       = element_text(face = "bold", size = 11),
+      legend.position  = "right",
+      panel.grid.minor = element_blank()
+    )
+}
+
+
+deg_results <- list()   
+
+for (resp in response_groups) {
+  
+  plots_resp <- list()
+  
+  for (ct in cell_types) {
+    
+    message(" ", resp, " | ", ct)
+    
+
+    cells_sub <- WhichCells(combined,
+                            expression = response == resp & 
+                                         celltype_column == ct)
+    
+    if (length(cells_sub) < 10) {
+      message(" Trop peu de cellules — ignoré")
+      next
+    }
+    
+    sub_obj <- subset(combined, cells = cells_sub)
+    Idents(sub_obj) <- "timepoint"
+    
+
+    if (!all(c("pre", "post") %in% levels(droplevels(Idents(sub_obj))))) {
+      message(" Timepoint manquant — ignoré")
+      next
+    }
+    
+    deg <- tryCatch(
+      FindMarkers(sub_obj,
+                  ident.1    = "post",
+                  ident.2    = "pre",
+                  test.use   = "wilcox",
+                  min.pct    = 0.1,
+                  logfc.threshold = 0.25),
+      error = function(e) { message("  ✗ Erreur : ", e$message); NULL }
+    )
+    
+    if (is.null(deg) || nrow(deg) == 0) next
+    
+    key <- paste0(resp, "__", ct)
+    deg_results[[key]] <- deg
+    
+    # Volcano
+    p <- volcano_plot2(
+      deg_df = deg,
+      title  = paste0(ct, "\n(", resp, ")")
+    )
+    plots_resp[[ct]] <- p
+  }
+  
+  
+  if (length(plots_resp) > 0) {
+    grid <- wrap_plots(plots_resp, ncol = 2) +
+      plot_annotation(
+        title    = paste0("DEG Post vs Pre treatement — ", resp),
+        subtitle = "",
+        theme    = theme(
+          plot.title    = element_text(face = "bold", size = 14),
+          plot.subtitle = element_text(color = "grey40", size = 10)
+        )
+      )
+    print(grid)
+  }
+}
+
+
+
+for (key in names(deg_results)) {
+  df_out <- deg_results[[key]] %>%
+    tibble::rownames_to_column("gene")
+  write.csv(df_out,
+            file = paste0("DEG_", gsub(" ", "_", key), ".csv"),
+            row.names = FALSE)
+}
+```
+
+## Functional enrichement
+
+### GO / Kegg
+
+```{r}
+#| fig-width: 16
+#| fig-height: 14
+library(clusterProfiler)
+library(org.Hs.eg.db) 
+library(enrichplot)
+library(ggplot2)
+library(dplyr)
+
+# ── 1. Correctly combine all DEG results into one dataframe ──────────────────
+# This ensures "cluster" (response__celltype) is properly tracked
+all_deg_df <- lapply(names(deg_results), function(key) {
+  df <- deg_results[[key]] %>% tibble::rownames_to_column("gene")
+  df$cluster <- key  # Adds the identifier column expected later
+  return(df)
+}) %>% bind_rows()
+
+# Filter for significance
+deg2_sig <- all_deg_df %>%
+  filter(p_val_adj < 0.05, abs(avg_log2FC) > 1)
+
+# ── 2. Run Enrichment Loop ───────────────────────────────────────────────────
+clusters_ok <- unique(deg2_sig$cluster)
+go_list2   <- list()
+kegg_list2 <- list()
+
+for (cl in clusters_ok) {
+  genes_up2 <- deg2_sig %>% filter(cluster == cl, avg_log2FC > 0) %>% pull(gene)
+  genes_down2 <- deg2_sig %>% filter(cluster == cl, avg_log2FC < 0) %>% pull(gene)
+  
+  for (direction in c("up", "down")) {
+    # 💥 BUG FIX: Ensure the variable matches what you pull
+    genes2 <- if (direction == "up") genes_up2 else genes_down2
+    if (length(genes2) < 5) next
+    
+    tag <- paste0(cl, "_", direction)
+    
+    # GO (BP)
+    go_res2 <- tryCatch(
+      enrichGO(gene = genes2, OrgDb = org.Hs.eg.db, keyType = "SYMBOL",
+               ont = "BP", pAdjustMethod = "BH", pvalueCutoff = 0.05, readable = TRUE),
+      error = function(e) NULL
+    )
+    if (!is.null(go_res2) && nrow(as.data.frame(go_res2)) > 0) go_list2[[tag]] <- go_res2
+    
+    # KEGG
+    tryCatch({
+      entrez2 <- bitr(genes2, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Hs.eg.db)$ENTREZID
+      kegg_res2 <- enrichKEGG(gene = entrez2, organism = "hsa", pAdjustMethod = "BH", pvalueCutoff = 0.05)
+      if (!is.null(kegg_res2) && nrow(as.data.frame(kegg_res2)) > 0) kegg_list2[[tag]] <- kegg_res2
+    }, error = function(e) NULL)
+  }
+}
+
+# ── 3. Comparative Heatmap/Dotplot ───────────────────────────────────────────
+gene_list_up2 <- lapply(clusters_ok, function(cl) {
+  deg2_sig %>% filter(cluster == cl, avg_log2FC > 0) %>% pull(gene)
+})
+names(gene_list_up2) <- clusters_ok
+gene_list_up2 <- gene_list_up2[sapply(gene_list_up2, length) >= 5]
+
+# Initialize ck2 as NULL
+ck2 <- NULL
+
+if (length(gene_list_up2) > 0) {
+  ck2 <- tryCatch(
+    compareCluster(
+      geneClusters  = gene_list_up2,
+      fun           = "enrichGO",
+      OrgDb         = org.Hs.eg.db,
+      keyType       = "SYMBOL",
+      ont           = "MF", 
+      pAdjustMethod = "BH",
+      pvalueCutoff  = 0.05
+    ),
+    error = function(e) NULL
+  )
+}
+
+# 💥 SAFEGUARD & PLOT: Only plot if terms were actually enriched
+if (!is.null(ck2) && nrow(as.data.frame(ck2)) > 0) {
+  p_compare2 <- dotplot(ck2, showCategory = 8, label_format = 40) +
+    ggtitle("GO MF — Up in responder, comparison across clusters post treatment") +
+    theme(
+      axis.text.x  = element_text(angle = 40, hjust = 1),
+      plot.title   = element_text(face = "bold")
+    )
+  print(p_compare2)
+} else {
+  message("No significant GO MF terms were enriched across your clusters. Skipping plot.")
+}
+```
+
+```{r}
+#| fig-width: 16
+#| fig-height: 14
+# ── 1. Séparer les groupes de réponse présents dans tes données ──────────────
+# (Ex: "Responder" et "Non-Responder", ou selon tes colonnes)
+responses <- unique(sapply(strsplit(clusters_ok, "__"), `[`, 1))
+
+# ── 2. Boucle pour générer un dotplot par groupe de réponse ──────────────────
+for (resp in responses) {
+  
+  cat("\n--- Analyse CompareCluster pour :", resp, "---\n")
+  
+  # Trouver les clusters qui appartiennent à cette réponse précise
+  clusters_resp <- clusters_ok[startsWith(clusters_ok, paste0(resp, "__"))]
+  
+  # Créer la liste de gènes UP pour cette réponse
+  gene_list_resp <- lapply(clusters_resp, function(cl) {
+    deg2_sig %>% filter(cluster == cl, avg_log2FC > 0) %>% pull(gene)
+  })
+  
+  # Donner des noms propres aux axes du graphique (juste le type cellulaire)
+  names(gene_list_resp) <- gsub(paste0(resp, "__"), "", clusters_resp)
+  
+  # Filtrer pour ne garder que les types cellulaires avec assez de gènes
+  gene_list_resp <- gene_list_resp[sapply(gene_list_resp, length) >= 5]
+  
+  # Si on n'a pas au moins un cluster valide, on passe au groupe suivant
+  if (length(gene_list_resp) == 0) {
+    message("Pas assez de gènes significatifs pour créer un dotplot pour : ", resp)
+    next
+  }
+  
+  # Calcul de l'enrichissement comparatif
+  ck_resp <- tryCatch(
+    compareCluster(
+      geneClusters  = gene_list_resp,
+      fun           = "enrichGO",
+      OrgDb         = org.Hs.eg.db,
+      keyType       = "SYMBOL",
+      ont           = "MF", # Tu peux changer en "BP" si "MF" est trop vide
+      pAdjustMethod = "BH",
+      pvalueCutoff  = 0.05
+    ),
+    error = function(e) NULL
+  )
+  
+  # ── 3. Affichage du Dotplot si des voies sont enrichies ────────────────────
+  if (!is.null(ck_resp) && nrow(as.data.frame(ck_resp)) > 0) {
+    
+    p_resp <- dotplot(ck_resp, showCategory = 8, label_format = 40) +
+      ggtitle(paste0("GO MF — Up in ", resp, " (Comparison across cell types post-treatment)")) +
+      theme(
+        axis.text.x  = element_text(angle = 45, hjust = 1, vjust = 1),
+        plot.title   = element_text(face = "bold", size = 12),
+        axis.title.x = element_blank() # Enlève le titre d'axe "Cluster" redondant
+      )
+    
+    # Affiche le graphique dans RStudio / ton rapport
+    print(p_resp)
+    
+    # Optionnel : Sauvegarder automatiquement le PDF
+    # ggsave(paste0("GO_compareCluster_UP_", resp, ".pdf"), p_resp, width = 10, height = 8)
+    
+  } else {
+    message("Aucun terme GO significatif trouvé pour le groupe : ", resp)
+  }
+}
+```
+
+#### Enrich genes up in responder
+
+```{r}
+#| fig-width: 16
+#| fig-height: 14
+# ── Dotplot GO — un graphe par cluster_direction ─────────────────────────────
+for (tag in names(go_list2)) {
+  p2 <- dotplot(go_list2[[tag]], showCategory = 15, font.size = 9) +
+    ggtitle(paste("GO BP —", tag)) +
+    theme(plot.title = element_text(face = "bold"))
+  
+  #ggsave(paste0("GO_dotplot_", gsub("/", "_", tag), ".pdf"),
+  #       p, width = 9, height = 7)
+}
+
+# ── Dotplot KEGG ──────────────────────────────────────────────────────────────
+for (tag in names(kegg_list2)) {
+  p2 <- dotplot(kegg_list2[[tag]], showCategory = 15, font.size = 9) +
+    ggtitle(paste("KEGG —", tag)) +
+    theme(plot.title = element_text(face = "bold"))
+  
+  #ggsave(paste0("KEGG_dotplot_", gsub("/", "_", tag), ".pdf"),      p, width = 9, height = 7)
+}
+
+# ── Heatmap comparative (tous clusters, GO) ───────────────────────────────────
+# compareCluster sur les gènes UP uniquement
+gene_list_up2 <- lapply(clusters_ok, function(cl) {
+  deg2_sig %>% filter(cluster == cl, avg_log2FC > 0) %>% pull(gene)
+})
+names(gene_list_up2) <- clusters_ok
+# retirer les vides
+gene_list_up2 <- gene_list_up2[sapply(gene_list_up2, length) >= 5]
+
+ck2 <- compareCluster(
+  geneClusters  = gene_list_up2,
+  fun           = "enrichGO",
+  OrgDb         = org.Hs.eg.db,
+  keyType       = "SYMBOL",
+  ont           = "MF", #"GO:CC"),
+  pAdjustMethod = "BH",
+  pvalueCutoff  = 0.05
+)
+
+p_compare2 <- dotplot(ck2, showCategory = 8, label_format = 40) +
+  ggtitle("GO MF — Up in responder, comparison across clusters post treatment") +
+  theme(
+    axis.text.x  = element_text(angle = 40, hjust = 1),
+    plot.title   = element_text(face = "bold")
+  )
+
+p_compare2
+#ggsave("GO_compareCluster_UP_responder.pdf",       p_compare, width = 14, height = 10)
+```

@@ -1,0 +1,122 @@
+---
+title: "new integration"
+format: html
+editor: visual
+---
+
+Integration anchor based ref sur les data pre traitement  
+
+```{r}
+# Loading relevant libraries 
+library(tidyverse) # includes ggplot2, for data visualisation. dplyr, for data manipulation.
+library(Seurat)
+library(scuttle)
+set.seed(123)
+```
+
+
+```{r}
+pool2 <- readRDS(("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/aml2ndaire/aml_2nd rds/020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop.rds"))
+```
+
+# split 
+```{r}
+# Préparation de l'objet unique (Assay 5)
+# Au lieu de SplitObject, on s'assure que les données sont dans des layers séparés
+pool2[["RNA"]] <- split(pool2[["RNA"]], f = pool2$orig.ident)
+```
+
+# normalisation, scale, umap
+```{r}
+# Normalisation et Features (sur l'objet entier, mais par layer)
+pool2 <- NormalizeData(pool2)
+pool2 <- FindVariableFeatures(pool2)
+pool2 <- ScaleData(pool2)
+pool2 <- RunPCA(pool2, features = VariableFeatures(pool2))
+```
+
+# integration ref = pre ttt
+```{r}
+# Intégration par Layers (Équivalent de FindIntegrationAnchors + IntegrateData)
+# Le paramètre 'reference' fonctionne aussi ici pour utiliser les échantillons "pre"
+reference_indices <- which(levels(as.factor(pool2$orig.ident)) %in% 
+                            unique(pool2$orig.ident[pool2$timepoint == "pre"]))
+
+pool2 <- IntegrateLayers(
+  object = pool2, 
+  method = CCAIntegration,     # Équivalent de l'intégration CCA classique
+  orig.reduction = "pca", 
+  new.reduction = "integrated.cca",
+  reference = reference_indices, # Utilise les "pre" comme référence
+  verbose = FALSE
+)
+```
+
+# UMAP cluster
+```{r}
+# 4. Downstream Analysis
+# IMPORTANT : En v5, on ne crée pas forcément un nouvel Assay "integrated".
+# On utilise la RÉDUCTION intégrée pour l'UMAP et les Voisins.
+pool2 <- RunUMAP(pool2, reduction = "integrated.cca", dims = 1:30, reduction.name = "umap.integrated", return.model = TRUE)
+pool2 <- FindNeighbors(pool2, reduction = "integrated.cca", dims = 1:30)
+pool2 <- FindClusters(pool2, resolution = 0.4, cluster.name = "cluster.cca")
+
+pool2 <- RunUMAP(pool2, dims = 1:30 ) 
+pool2 <- FindNeighbors(pool2, dims = 1:30)
+pool2 <- FindClusters(pool2, resolution = 0.4)
+
+# Pour l'annotation : Re-fusionner les couches RNA
+pool2 <- JoinLayers(pool2)
+```
+
+# subset pre traitement
+```{r}
+pool_pre_all <- subset(pool2, subset = timepoint == "pre")
+
+pool_pre_all <- FindNeighbors(pool_pre_all, reduction = "integrated.cca", dims = 1:30)
+pool_pre_all <- FindClusters(pool_pre_all, resolution = 0.4, cluster.name = "cluster.cca_pre")
+
+pool_pre_all <- FindNeighbors(pool_pre_all, dims = 1:30)
+pool_pre_all <- FindClusters(pool_pre_all, resolution = 0.4, cluster.name = "cluster_pre")
+```
+
+# visulisation 
+```{r}
+DimPlot(pool_pre_all, reduction = "umap.integrated", group.by = "cluster.cca_pre", label = TRUE) +ggtitle("umap uniquement pre ttt")
+DimPlot(pool_pre_all, reduction = "umap.integrated",group.by = "patient_response", cols = c("P1_refractory" = "#C91837"  , "P2_responder" = "#5386B3" , "P3_responder" =  "#44A75D"  , "P4_refractory" =  "#9A68A4")) +ggtitle("umap uniquement pre ttt")
+DimPlot(pool2, reduction = "umap.integrated", group.by = "cluster.cca", label = TRUE)  +ggtitle("umap intégrer (pre et post ttt)")
+DimPlot(pool2, reduction = "umap.integrated", group.by = "patient_response", cols = c("P1_refractory" = "#C91837"  , "P2_responder" = "#5386B3" , "P3_responder" =  "#44A75D"  , "P4_refractory" =  "#9A68A4"))  +ggtitle("umap intégrer (pre et post ttt) ")
+
+DimPlot(pool2, reduction = "umap", group.by = "patient_response", cols = c("P1_refractory" = "#C91837"  , "P2_responder" = "#5386B3" , "P3_responder" =  "#44A75D"  , "P4_refractory" =  "#9A68A4")) +ggtitle("umap nn int (pre et post)")
+DimPlot(pool_pre_all, reduction = "umap", group.by = "patient_response", cols = c("P1_refractory" = "#C91837"  , "P2_responder" = "#5386B3" , "P3_responder" =  "#44A75D"  , "P4_refractory" =  "#9A68A4"))  +ggtitle("umap nn int pre ttt uniquement")
+
+saveRDS(pool2, "pool_integrated.rds")
+saveRDS(pool_pre_all, "pool_pre_all.rds")
+
+Idents(pool2) <- "cluster.cca"
+DimPlot(pool2, reduction = "umap.integrated", split.by = "response_timepoint")
+```
+
+# find makrer
+```{r}
+Idents(pool_pre_all) <- "cluster.cca_pre"
+markers_poolA_et_B <-  FindAllMarkers(
+  pool_pre_all,
+  only.pos = TRUE,
+  min.pct = 0.1,
+  logfc.threshold = 0.25
+)
+
+write.csv(markers_poolA_et_B, "markers_poolpre_filtered.csv")
+
+Idents(pool2) <- "cluster.cca"
+markers_poolA_et_B <-  FindAllMarkers(
+  pool2,
+  only.pos = TRUE,
+  min.pct = 0.1,
+  logfc.threshold = 0.25
+)
+
+write.csv(markers_poolA_et_B, "markers_poolinteg_filtered.csv")
+```
+

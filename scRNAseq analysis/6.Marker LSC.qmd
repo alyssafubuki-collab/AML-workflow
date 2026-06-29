@@ -1,0 +1,209 @@
+---
+title: "Marker LSC"
+format: html
+editor: visual
+---
+
+# LSC17 marker
+
+```{r}
+#Idents(pool_integrated) <- "final_ref_annotation"
+FeaturePlot(poolA_et_B, features = c("DNMT3B", "ZBTB46", "NYNRIN", "ARHGAP22", "LAPTM4B", "MMRN1", "DPYSL3", "KIAA0125"), reduction = "umap.integrated",cols = c("gray", "cyan3"))
+FeaturePlot(poolA_et_B, features = c("CDK6", "CPXM1", "SOCS2", "SMIM24", "EMP1", "NGFRAP1", "CD34", "AKR1C3", "GPR56"), reduction = "umap.integrated",cols = c("gray", "cyan3"))
+FeaturePlot(poolA_et_B, features = c("DNMT3B", "ZBTB46", "NYNRIN", "ARHGAP22", "LAPTM4B", "MMRN1", "DPYSL3", "KIAA0125"), reduction = "umap.integrated", split.by = "orig.ident")
+FeaturePlot(poolA_et_B, features = c("CDK6", "CPXM1", "SOCS2", "SMIM24", "EMP1", "NGFRAP1", "CD34", "AKR1C3", "GPR56"), reduction = "umap.integrated", split.by = "orig.ident")
+
+# 1. Définir la liste des gènes (avec les noms mis à jour)
+lsc17_genes <- c("DNMT3B", "ZBTB46", "NYNRIN", "ARHGAP22", "LAPTM4B", 
+                 "MMRN1", "DPYSL3", "FAM30A", "CDK6", "CPXM1", 
+                 "SOCS2", "SMIM24", "EMP1", "BEX3", "CD34", 
+                 "AKR1C3", "ADGRG1")
+
+# 2. Vérifier lesquels sont réellement présents dans votre objet
+genes_present <- intersect(lsc17_genes, rownames(poolA_et_B))
+
+# Afficher les gènes manquants pour information
+missing_genes <- setdiff(lsc17_genes, genes_present)
+print(paste("Gènes manquants :", paste(missing_genes, collapse = ", ")))
+
+# 3. Lancer AddModuleScore (Notez le list(genes_present))
+poolA_et_B <- AddModuleScore(
+  object = poolA_et_B,
+  features = list(lsc17_genes), 
+  name = "LSC_Score"
+)
+
+# Le score sera stocké dans la colonne "LSC_Score1"
+
+FeaturePlot(poolA_et_B, features = "LSC_Score1",  reduction = "umap.integrated",  cols =  c("gray88","gray", "red4"), min.cutoff = -1, max.cutoff = 1) +ggtitle("expression gene marker LSC17")
+
+
+
+```
+
+# LSC anne marker
+
+```{r}
+DefaultAssay(poolA_et_B) <- "RNA"
+anne_gene_marker <- c("THY1",
+"MIX3",
+"IL3RA",
+"CD38",
+"CD34",
+"HLA-DRA",
+"PTPRC",
+"KIT",
+"CD45",
+"CD200", 
+"CD19",
+"CD36")
+
+poolA_et_B <- AddModuleScore(
+  object = poolA_et_B,
+  features = list(anne_gene_marker), 
+  name = "LSC_Score2"
+)
+
+FeaturePlot(poolA_et_B, features = "LSC_Score21",  reduction = "umap.integrated",  cols = c("gray88","gray", "red4"), min.cutoff = -1, max.cutoff = 1) + ggtitle("expression gene marker LSC de Anne")
+
+DefaultAssay(poolA_et_B) <- "ADT"
+anne_adt_markers <- c("CD90-ADT",
+"MIX3-ADT",
+"CD123-ADT",
+"CD38-ADT",
+"CD34-ADT",
+"HLADR-ADT",
+"CD45RA-ADT",
+"CD117-ADT",
+"CD45-ADT",
+"CD200-ADT", 
+"CD19-ADT",
+"CD36-ADT")
+
+# 2. Vérifier lesquels sont réellement présents dans votre objet
+genes_present <- intersect(anne_adt_markers, rownames(poolA_et_B))
+
+# Afficher les gènes manquants pour information
+missing_genes <- setdiff(anne_adt_markers, genes_present)
+print(paste("Gènes manquants :", paste(missing_genes, collapse = ", ")))
+
+poolA_et_B <- AddModuleScore(
+  object = poolA_et_B,
+  features = list(genes_present), 
+  name = "LSC_Score_ADT",
+  ctrl = 2,      # Nombre de gènes de contrôle réduit
+  nbin = 10      # Nombre de groupes d'expression réduit
+)
+
+FeaturePlot(poolA_et_B, features = "LSC_Score_ADT1",  reduction = "umap.integrated",  cols = c("gray88","gray", "red4"), min.cutoff = -1, max.cutoff = 1) + ggtitle("ADT marker LSC de Anne")
+
+# Calculer la moyenne des protéines présentes pour chaque cellule
+# On utilise les données log-normalisées (data)
+adt_data <- GetAssayData(poolA_et_B, assay = "ADT", layer = "data")
+poolA_et_B$LSC_Score_ADT_Simple <- colMeans(as.matrix(adt_data[genes_present, ]))
+
+# Visualisation
+FeaturePlot(poolA_et_B, features = "LSC_Score_ADT_Simple",  reduction = "umap.integrated",  cols = c("gray88","gray", "red4")) +ggtitle("ADT marker LSC de Anne (colMeans)")
+```
+
+# Boucle par patient LSC
+
+```{r}
+library(ggplot2)
+library(patchwork)
+
+# 1. Créer la liste des combinaisons Patient_Timepoint
+# On utilise la colonne 'patient_response' et 'timepoint' que nous avons validées ensemble
+poolA_et_B$split_var <- paste(poolA_et_B$patient_response, poolA_et_B$timepoint, sep = "_")
+combinations <- unique(poolA_et_B$split_var)
+
+# 2. Définir les scores à afficher
+scores_to_plot <- c("LSC_Score1", "LSC_Score21", "LSC_Score_ADT1")
+titles <- c("LSC17 (RNA)", "LSC Anne (RNA)", "LSC Anne (ADT)")
+
+# 3. La Boucle
+for (comb in combinations) {
+  
+  message(paste("Génération des graphiques pour :", comb))
+  
+  # Créer un sous-ensemble temporaire pour le patient/temps actuel
+  subset_obj <- subset(poolA_et_B, subset = split_var == comb)
+  
+  # Liste pour stocker les 3 graphiques de ce patient
+  plot_list <- list()
+  
+  for (i in 1:length(scores_to_plot)) {
+    p <- FeaturePlot(
+      subset_obj, 
+      features = scores_to_plot[i], 
+      reduction = "umap.cca0", 
+      cols = c("gray88", "gray", "red4"),
+      min.cutoff = -1, 
+      max.cutoff = 1
+    ) + ggtitle(paste(titles[i], "\n", comb)) +
+      theme(plot.title = element_text(size = 10))
+    
+    plot_list[[i]] <- p
+  }
+  
+  # Combiner les 3 graphiques côte à côte pour ce patient
+  combined_plot <- wrap_plots(plot_list, ncol = 3)
+  
+  # Afficher ou Sauvegarder
+  print(combined_plot)
+  
+  # Optionnel : Sauvegarder automatiquement chaque ligne
+  ggsave(filename = paste0("Scores_", comb, ".png"), plot = combined_plot, width = 12, height = 4)
+}
+```
+
+```{r}
+# Note : JointFeaturePlot nécessite souvent Seurat v5 ou l'installation de 'SeuratData'
+JointFeaturePlot(
+  object = poolA_et_B, 
+  features = c("LSC_Score1", "LSC_Score21", "LSC_Score_ADT1"), 
+  reduction = "umap.cca0",
+  cols = c("red", "green", "blue"), # LSC17=Rouge, Anne_RNA=Vert, Anne_ADT=Bleu
+  max.cutoff = "q95", 
+  ncol = 1 # Cela affichera le plot combiné en grand
+) + ggtitle("Superposition des 3 scores LSC (RNA vs ADT)")
+
+FeaturePlot(
+  poolA_et_B, 
+  features = c("LSC_Score1", "LSC_Score_ADT1"), 
+  reduction = "umap.cca0",
+  blend = TRUE,             # Active le mélange des couleurs
+  blend.threshold = 0.1,    # Seuil pour éviter le bruit
+  cols = c("gray90", "red", "blue") # Rouge=RNA, Bleu=ADT, Violet=Les deux
+)
+
+FeaturePlot(
+  poolA_et_B, 
+  features = c("LSC_Score21", "LSC_Score_ADT1"), 
+  reduction = "umap.cca0",
+  blend = TRUE,             # Active le mélange des couleurs
+  blend.threshold = 0.1,    # Seuil pour éviter le bruit
+  cols = c("gray90", "red", "blue") # Rouge=RNA, Bleu=ADT, Violet=Les deux
+)
+
+FeaturePlot(
+  poolA_et_B, 
+  features = c("LSC_Score1", "LSC_Score21"), 
+  reduction = "umap.cca0",
+  blend = TRUE,             # Active le mélange des couleurs
+  blend.threshold = 0.1,    # Seuil pour éviter le bruit
+  cols = c("gray90", "red", "blue") # Rouge=RNA, Bleu=ADT, Violet=Les deux
+)
+```
+
+```{r}
+Idents(poolA_et_B) <- "SingleR_fine_poolA_et_B"
+RidgePlot(poolA_et_B, features = c("DNMT3B", "ZBTB46", "NYNRIN", "ARHGAP22", "LAPTM4B", "MMRN1", "DPYSL3", "KIAA0125"))
+RidgePlot(poolA_et_B, features = c("CDK6", "CPXM1", "SOCS2", "SMIM24", "EMP1", "NGFRAP1", "CD34", "AKR1C3", "GPR56")) 
+
+```
+
+```{r}
+VlnPlot(poolA_et_B, features = c("DNMT3B", "ZBTB46", "NYNRIN", "ARHGAP22", "LAPTM4B", "MMRN1", "DPYSL3", "KIAA0125"),  split.by = "orig.ident")
+VlnPlot(poolA_et_B, features = c("CDK6", "CPXM1", "SOCS2", "SMIM24", "EMP1", "NGFRAP1", "CD34", "AKR1C3", "GPR56"),  split.by = "orig.ident")
+```

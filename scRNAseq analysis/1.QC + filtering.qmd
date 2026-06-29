@@ -1,0 +1,160 @@
+---
+title: "aml2ndaire 2"
+format: html
+editor: visual
+---
+
+# Setting up environment:
+
+```{r}
+# Clean environment
+rm(list = ls(all.names = TRUE)) # will clear all objects including hidden objects
+gc() # free up memory and report the memory usage
+options(max.print = .Machine$integer.max, scipen = 999, stringsAsFactors = F, dplyr.summarise.inform = F) # avoid truncated output in R console and scientific notation
+```
+
+```{r}
+# Loading relevant libraries 
+library(tidyverse) # includes ggplot2, for data visualisation. dplyr, for data manipulation.
+library(Seurat)
+library(scuttle)
+set.seed(123)
+```
+
+# import RDS file
+```{r}
+poolA_et_B <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/aml2ndaire/aml_2nd rds/020_010_042_025_008_034_095_017_filtered_with_adt.rds")
+```
+
+# Ajouter les metadata biologiques
+
+```{r}
+poolA_et_B$patient <- NA
+poolA_et_B$response <- NA
+poolA_et_B$timepoint <- NA
+```
+
+```{r}
+# Assignation patient
+poolA_et_B$patient[poolA_et_B$orig.ident %in% c("AML_OB1","AML_OB2")] <- "P1"
+poolA_et_B$patient[poolA_et_B$orig.ident %in% c("AML_OB3","AML_OB4")] <- "P2"
+poolA_et_B$patient[poolA_et_B$orig.ident %in% c("AML_OB5","AML_OB6")] <- "P3"
+poolA_et_B$patient[poolA_et_B$orig.ident %in% c("AML_OB7","AML_OB8")] <- "P4"
+
+# Assignation réponse
+poolA_et_B$response[poolA_et_B$patient %in% c("P1","P4")] <- "refractory"
+poolA_et_B$response[poolA_et_B$patient %in% c("P2","P3")] <- "responder"
+
+# Assignation timepoint
+poolA_et_B$timepoint[poolA_et_B$orig.ident %in% c("AML_OB1","AML_OB3","AML_OB5","AML_OB7")] <- "pre"
+poolA_et_B$timepoint[poolA_et_B$orig.ident %in% c("AML_OB2","AML_OB4","AML_OB6","AML_OB8")] <- "post"
+
+```
+
+```{r}
+# Vérifier
+table(poolA_et_B$patient, poolA_et_B$timepoint)
+table(poolA_et_B$response, poolA_et_B$timepoint)
+table(poolA_et_B$orig.ident)
+```
+
+# change l'ordre
+
+```{r}
+# Transformer 'patient' en facteur avec l'ordre souhaité
+poolA_et_B$patient <- factor(poolA_et_B$patient, levels = c("P1", "P4", "P2", "P3"))
+table(poolA_et_B$patient)
+
+# Transformer 'timepoint' en facteur avec l'ordre souhaité
+poolA_et_B$timepoint <- factor(poolA_et_B$timepoint, levels = c("pre", "post"))
+table(poolA_et_B$timepoint)
+
+poolA_et_B$response <- factor(poolA_et_B$response, levels = c("responder", "refractory"))
+table(poolA_et_B$response)
+```
+
+```{r}
+saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt.rds")
+```
+
+# QC (quality control)
+
+## mito
+
+```{r}
+#poolA et B
+poolA_et_B[["percent.mt"]] <- PercentageFeatureSet(poolA_et_B, pattern = "^MT-")
+VlnPlot(poolA_et_B, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"))
+FeatureScatter(poolA_et_B, "nCount_RNA", "percent.mt")
+FeatureScatter(poolA_et_B, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+VlnPlot(poolA_et_B, features = "percent.mt") + theme_linedraw()
+
+```
+
+## ribo
+
+```{r}
+#poolA et B
+poolA_et_B[["percent.ribo"]] <- PercentageFeatureSet(poolA_et_B, pattern = "^RPS|^RPL")
+VlnPlot(poolA_et_B, features = c("nFeature_RNA", "nCount_RNA", "percent.ribo"))
+FeatureScatter(poolA_et_B, "nCount_RNA", "percent.ribo")
+```
+
+```{r}
+saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt_qc.rds")
+```
+
+# filtering + joinlayer
+
+```{r}
+poolA_et_B <- JoinLayers(poolA_et_B)
+
+# extracting the metric i want to check
+counts_vector <- poolA_et_B$nFeature_RNA
+
+#running is outlier
+outliers <- isOutlier(counts_vector, 
+                      nmads = 5, 
+                      type = "both", 
+                      batch = poolA_et_B$orig.ident)
+
+table(outliers)
+
+#filter out the outlier
+poolA_et_B <- poolA_et_B[, !outliers]
+```
+
+```{r}
+poolA_et_B <- JoinLayers(poolA_et_B)
+
+# extracting the metric i want to check
+counts_vector <- poolA_et_B$percent.mt
+
+#running is outlier
+outliers <- isOutlier(counts_vector, 
+                      nmads = 5, 
+                      type = "higher", 
+                      batch = poolA_et_B$orig.ident)
+
+table(outliers)
+
+#filter out the outlier
+poolA_et_B <- poolA_et_B[, !outliers]
+
+VlnPlot(poolA_et_B, features = "percent.mt")
+VlnPlot(poolA_et_B, features = "nFeature_RNA")
+
+```
+
+```{r}
+# Vérifier
+table(poolA_et_B$patient, poolA_et_B$timepoint)
+table(poolA_et_B$response, poolA_et_B$timepoint)
+table(poolA_et_B$orig.ident)
+```
+
+#save
+
+```{r}
+saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop.rds")
+```

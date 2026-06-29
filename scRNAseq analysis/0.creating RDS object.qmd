@@ -1,0 +1,450 @@
+---
+title: "0.creating RDS object"
+format: html
+editor: visual
+---
+
+# Setting up environment:
+
+```{r}
+# Clean environment
+rm(list = ls(all.names = TRUE)) # will clear all objects including hidden objects
+gc() # free up memory and report the memory usage
+options(max.print = .Machine$integer.max, scipen = 999, stringsAsFactors = F, dplyr.summarise.inform = F) # avoid truncated output in R console and scientific notation
+set.seed(123)
+```
+
+```{r}
+# Loading relevant libraries 
+library(tidyverse) # includes ggplot2, for data visualisation. dplyr, for data manipulation.
+library(Seurat)
+library(scuttle)
+```
+
+# import data
+
+## poolA
+
+```{r}
+#020_010_D refractaire
+inputMatrixDirOB1 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolA/poolA_output/outs/per_sample_outs/020_010_D/count/sample_filtered_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB1)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB1))
+}
+
+cat("Reading 10X matrix...\n")
+OB1 <- Read10X(
+  data.dir = inputMatrixDirOB1,
+  gene.column = 2,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+str(OB1) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB1 <- OB1$`Gene Expression`
+adt_OB1 <- OB1$`Antibody Capture`
+
+#020_010_F
+inputMatrixDirOB2 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolA/poolA_output/outs/per_sample_outs/020_010_F/count/sample_filtered_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB2)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB2))
+}
+
+cat("Reading 10X matrix...\n")
+OB2 <- Read10X(
+  data.dir = inputMatrixDirOB2,
+  gene.column = 2,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+str(OB2) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB2 <- OB2$`Gene Expression`
+adt_OB2 <- OB2$`Antibody Capture`
+
+#042_025_D repondeur
+inputMatrixDirOB3 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolA/poolA_output/outs/per_sample_outs/042_025_D/count/sample_filtered_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB3)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB3))
+}
+
+cat("Reading 10X matrix...\n")
+OB3 <- Read10X(
+  data.dir = inputMatrixDirOB3,
+  gene.column = 2,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+str(OB3) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB3 <- OB3$`Gene Expression`
+adt_OB3 <- OB3$`Antibody Capture`
+
+#042_025_F
+inputMatrixDirOB4 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolA/poolA_output/outs/per_sample_outs/042_025_F/count/sample_filtered_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB4)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB4))
+}
+
+cat("Reading 10X matrix...\n")
+OB4 <- Read10X(
+  data.dir = inputMatrixDirOB4,
+  gene.column = 2,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+str(OB4) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB4 <- OB4$`Gene Expression`
+adt_OB4 <- OB4$`Antibody Capture`
+
+```
+
+## poolB
+
+```{r}
+#008_034_D repondant
+
+inputMatrixDirOB5 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolB/poolB_output/outs/per_sample_outs/008_034_D/count/sample_filtered_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB5)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB5))
+}
+
+cat("Reading 10X matrix...\n")
+OB5 <- Read10X(
+  data.dir = inputMatrixDirOB5,
+  gene.column = 2,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+str(OB5) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB5 <- OB5$`Gene Expression`
+adt_OB5 <- OB5$`Antibody Capture`
+
+#008_034_F
+inputMatrixDirOB6 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolB/poolB_output/outs/per_sample_outs/008_034_F/count/sample_filtered_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB6)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB6))
+}
+
+cat("Reading 10X matrix...\n")
+OB6 <- Read10X(
+  data.dir = inputMatrixDirOB6,
+  gene.column = 2,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+str(OB6) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB6 <- OB6$`Gene Expression`
+adt_OB6 <- OB6$`Antibody Capture`
+
+#095_017_D refractaire
+inputMatrixDirOB7 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolB/poolB_output/outs/per_sample_outs/095_017_D/count/sample_filtered_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB7)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB7))
+}
+
+cat("Reading 10X matrix...\n")
+OB7 <- Read10X(
+  data.dir = inputMatrixDirOB7,
+  gene.column = 2,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+str(OB7) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB7 <- OB7$`Gene Expression`
+adt_OB7 <- OB7$`Antibody Capture`
+
+#095_017_F
+inputMatrixDirOB8 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolB/poolB_output/outs/per_sample_outs/095_017_F/count/sample_filtered_feature_bc_matrix"
+
+if(!dir.exists(inputMatrixDirOB8)){
+  stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB8))
+}
+
+cat("Reading 10X matrix...\n")
+OB8 <- Read10X(
+  data.dir = inputMatrixDirOB8,
+  gene.column = 2,        # utiliser 2 si features.tsv a gene symbol
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+str(OB8) # Check the multiple modalities (list of matrixes) - we're interested in Gene expression
+cts_OB8 <- OB8$`Gene Expression`
+adt_OB8 <- OB8$`Antibody Capture`
+
+```
+
+# create seurat object
+
+## poolA
+
+```{r}
+OB1 <- CreateSeuratObject(
+  counts = cts_OB1,
+  project = "AML_OB1",
+  min.cells = 3,
+  min.features = 200
+)
+
+# 1. Identify the cells that exist in BOTH the Seurat object and the ADT matrix
+common_cells <- intersect(Cells(OB1), colnames(adt_OB1))
+
+# 2. Subset the Seurat object to only include these common cells
+# (This ensures the object doesn't have cells that are missing ADT data)
+OB1 <- subset(OB1, cells = common_cells)
+
+# 3. Subset and REORDER the ADT matrix to match the Seurat object exactly
+adt_filtered <- adt_OB1[, Cells(OB1)]
+
+# 4. Add the assay
+OB1[["ADT"]] <- CreateAssay5Object(counts = adt_filtered)
+
+saveRDS(OB1, file = "020_010_D_filtered_with_adt.rds")
+
+head(rownames(OB1))
+
+OB2 <- CreateSeuratObject(
+  counts = cts_OB2,
+  project = "AML_OB2",
+  min.cells = 3,
+  min.features = 200
+)
+
+# 1. Identify the cells that exist in BOTH the Seurat object and the ADT matrix
+common_cells <- intersect(Cells(OB2), colnames(adt_OB2))
+
+# 2. Subset the Seurat object to only include these common cells
+# (This ensures the object doesn't have cells that are missing ADT data)
+OB2 <- subset(OB2, cells = common_cells)
+
+# 3. Subset and REORDER the ADT matrix to match the Seurat object exactly
+adt_filtered <- adt_OB2[, Cells(OB2)]
+
+# 4. Add the assay
+OB2[["ADT"]] <- CreateAssay5Object(counts = adt_filtered)
+
+saveRDS(OB2, file = "020_010_F_filtered_with_adt.rds")
+
+head(rownames(OB2))
+
+OB3 <- CreateSeuratObject(
+  counts = cts_OB3,
+  project = "AML_OB3",
+  min.cells = 3,
+  min.features = 200
+)
+
+# 1. Identify the cells that exist in BOTH the Seurat object and the ADT matrix
+common_cells <- intersect(Cells(OB3), colnames(adt_OB3))
+
+# 2. Subset the Seurat object to only include these common cells
+# (This ensures the object doesn't have cells that are missing ADT data)
+OB3 <- subset(OB3, cells = common_cells)
+
+# 3. Subset and REORDER the ADT matrix to match the Seurat object exactly
+adt_filtered <- adt_OB3[, Cells(OB3)]
+
+# 4. Add the assay
+OB3[["ADT"]] <- CreateAssay5Object(counts = adt_filtered)
+
+saveRDS(OB3, file = "042_025_D_filtered_with_adt.rds")
+
+head(rownames(OB3))
+
+OB4 <- CreateSeuratObject(
+  counts = cts_OB4,
+  project = "AML_OB4",
+  min.cells = 3,
+  min.features = 200
+)
+
+# 1. Identify the cells that exist in BOTH the Seurat object and the ADT matrix
+common_cells <- intersect(Cells(OB4), colnames(adt_OB4))
+
+# 2. Subset the Seurat object to only include these common cells
+# (This ensures the object doesn't have cells that are missing ADT data)
+OB4 <- subset(OB4, cells = common_cells)
+
+# 3. Subset and REORDER the ADT matrix to match the Seurat object exactly
+adt_filtered <- adt_OB4[, Cells(OB4)]
+
+# 4. Add the assay
+OB4[["ADT"]] <- CreateAssay5Object(counts = adt_filtered)
+
+saveRDS(OB4, file = "042_025_F_filtered_with_adt.rds")
+
+head(rownames(OB4))
+
+```
+
+## poolB
+
+```{r}
+OB5 <- CreateSeuratObject(
+  counts = cts_OB5,
+  project = "AML_OB5",
+  min.cells = 3,
+  min.features = 200
+)
+
+# 1. Identify the cells that exist in BOTH the Seurat object and the ADT matrix
+common_cells <- intersect(Cells(OB5), colnames(adt_OB5))
+
+# 2. Subset the Seurat object to only include these common cells
+# (This ensures the object doesn't have cells that are missing ADT data)
+OB5 <- subset(OB5, cells = common_cells)
+
+# 3. Subset and REORDER the ADT matrix to match the Seurat object exactly
+adt_filtered <- adt_OB5[, Cells(OB5)]
+
+# 4. Add the assay
+OB5[["ADT"]] <- CreateAssay5Object(counts = adt_filtered)
+
+saveRDS(OB5, file = "008_034_D_filtered_with_adt.rds")
+
+head(rownames(OB5))
+
+OB6 <- CreateSeuratObject(
+  counts = cts_OB6,
+  project = "AML_OB6",
+  min.cells = 3,
+  min.features = 200
+)
+
+# 1. Identify the cells that exist in BOTH the Seurat object and the ADT matrix
+common_cells <- intersect(Cells(OB6), colnames(adt_OB6))
+
+# 2. Subset the Seurat object to only include these common cells
+# (This ensures the object doesn't have cells that are missing ADT data)
+OB6 <- subset(OB6, cells = common_cells)
+
+# 3. Subset and REORDER the ADT matrix to match the Seurat object exactly
+adt_filtered <- adt_OB6[, Cells(OB6)]
+
+# 4. Add the assay
+OB6[["ADT"]] <- CreateAssay5Object(counts = adt_filtered)
+
+saveRDS(OB6, file = "008_034_F_filtered_with_adt.rds")
+
+head(rownames(OB6))
+
+OB7 <- CreateSeuratObject(
+  counts = cts_OB7,
+  project = "AML_OB7",
+  min.cells = 3,
+  min.features = 200
+)
+
+# 1. Identify the cells that exist in BOTH the Seurat object and the ADT matrix
+common_cells <- intersect(Cells(OB7), colnames(adt_OB7))
+
+# 2. Subset the Seurat object to only include these common cells
+# (This ensures the object doesn't have cells that are missing ADT data)
+OB7 <- subset(OB7, cells = common_cells)
+
+# 3. Subset and REORDER the ADT matrix to match the Seurat object exactly
+adt_filtered <- adt_OB7[, Cells(OB7)]
+
+# 4. Add the assay
+OB7[["ADT"]] <- CreateAssay5Object(counts = adt_filtered)
+
+saveRDS(OB7, file = "095_017_D_filtered_with_adt.rds")
+
+head(rownames(OB7))
+
+OB8 <- CreateSeuratObject(
+  counts = cts_OB8,
+  project = "AML_OB8",
+  min.cells = 3,
+  min.features = 200
+)
+
+# 1. Identify the cells that exist in BOTH the Seurat object and the ADT matrix
+common_cells <- intersect(Cells(OB8), colnames(adt_OB8))
+
+# 2. Subset the Seurat object to only include these common cells
+# (This ensures the object doesn't have cells that are missing ADT data)
+OB8 <- subset(OB8, cells = common_cells)
+
+# 3. Subset and REORDER the ADT matrix to match the Seurat object exactly
+adt_filtered <- adt_OB8[, Cells(OB8)]
+
+# 4. Add the assay
+OB8[["ADT"]] <- CreateAssay5Object(counts = adt_filtered)
+
+saveRDS(OB8, file = "095_017_F_filtered_with_adt.rds")
+
+head(rownames(OB8))
+
+```
+
+# merge RDS
+
+## merge poolA
+
+```{r}
+# Merge OB1 (x) with the others (y)
+poolA <- merge(
+  x = OB1, 
+  y = c(OB2, OB3, OB4), 
+  add.cell.ids = c("OB1", "OB2", "OB3", "OB4"), 
+  project = "PoolA"
+)
+
+# Check the new dimensions
+# Should be ~38k genes and the sum of all cells
+print(dim(poolA))
+
+saveRDS(poolA, file = "020_010_042_025_filtered_with_adt.rds")
+
+```
+
+## merge poolB
+
+```{r}
+# Merge OB1 (x) with the others (y)
+poolB <- merge(
+  x = OB5, 
+  y = c(OB6, OB7, OB8), 
+  add.cell.ids = c("OB5", "OB6", "OB7", "OB8"), 
+  project = "PoolB"
+)
+
+# Check the new dimensions
+# Should be ~38k genes and the sum of all cells
+print(dim(poolB))
+
+saveRDS(poolB, file = "008_034_095_017_filtered_with_adt.rds")
+
+```
+
+## merge poolA + poolB
+
+```{r}
+# Merge poolA and poolB
+# 'add.cell.ids' is critical here to avoid duplicate cell names across pools
+poolA_et_B <- merge(
+  x = poolA, 
+  y = poolB, 
+  add.cell.ids = c("PoolA", "PoolB"), 
+  project = "Full_AML_Cohort"
+)
+
+# 1. Check the final cell count
+ncol(poolA_et_B)
+print(dim(poolA_et_B))
+saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt.rds")
+
+```

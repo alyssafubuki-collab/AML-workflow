@@ -7,7 +7,6 @@ editor: visual
 # LSC17 marker
 
 ```{r}
-#Idents(pool_integrated) <- "final_ref_annotation"
 FeaturePlot(poolA_et_B, features = c("DNMT3B", "ZBTB46", "NYNRIN", "ARHGAP22", "LAPTM4B", "MMRN1", "DPYSL3", "KIAA0125"), reduction = "umap.integrated",cols = c("gray", "cyan3"))
 FeaturePlot(poolA_et_B, features = c("CDK6", "CPXM1", "SOCS2", "SMIM24", "EMP1", "NGFRAP1", "CD34", "AKR1C3", "GPR56"), reduction = "umap.integrated",cols = c("gray", "cyan3"))
 FeaturePlot(poolA_et_B, features = c("DNMT3B", "ZBTB46", "NYNRIN", "ARHGAP22", "LAPTM4B", "MMRN1", "DPYSL3", "KIAA0125"), reduction = "umap.integrated", split.by = "orig.ident")

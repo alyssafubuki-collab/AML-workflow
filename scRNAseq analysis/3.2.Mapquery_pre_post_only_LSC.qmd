@@ -1,0 +1,333 @@
+---
+title: "Mapping_TransfertLearning_Pre_Post_AML_sec"
+author: "Rahma AIT MAHFOUD"
+format:
+  html:
+    #self-contained: true
+    echo: false
+    message: false
+    warning: false
+
+editor: visual
+---
+
+```{r}
+library(Seurat)
+library(ggplot2)
+library(patchwork) 
+library(dplyr) # ◄— BIEN VÉRIFIER QUE CETTE LIGNE EST EXÉCUTÉE
+#intg_obj  <- readRDS("only_for_ED_Rahma/pool_integrated.rds")
+ref_pre <-  readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/aml2ndaire/only_for_ED_Rahma/pool_pre_immature.rds")
+ref_pre$immature_annot2 <- droplevels(ref_pre$immature_annot2)
+pool2 <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/aml2ndaire/aml_2nd rds/pool_integrated.rds")
+```
+
+```{r}
+ref_pre <- RunUMAP(ref_pre,
+                   reduction = "integrated.cca",  # ← la réduction utilisée à l'origine
+                   dims = 1:30,
+                   reduction.name = "umap.integrated",
+                   return.model = TRUE)
+
+# Vérifier
+!is.null(ref_pre@reductions$umap.integrated@misc$model)
+# Doit retourner TRUE
+```
+
+```{r}
+ref_pre$predicted.LSC_type <- ref_pre$immature_annot2
+
+ref_pre$immature_annot2 <- recode(ref_pre$immature_annot2, "LMPP-like" = "LMPP-LSC")
+ref_pre$predicted.LSC_type <- recode(ref_pre$predicted.LSC_type, "LMPP-like" = "LMPP-LSC")
+```
+
+```{r}
+# Extraire les cellules post depuis l'objet intégré
+query_post <- subset(pool2, subset = timepoint == "post")
+```
+
+```{r}
+anchors <- FindTransferAnchors(
+  reference = ref_pre,
+  query = query_post,
+  dims = 1:30,
+  reference.reduction = "integrated.cca"  # ← cohérent
+)
+
+query_post <- MapQuery(
+  anchorset = anchors,
+  reference = ref_pre,
+  query = query_post,
+  refdata = list(LSC_type = "immature_annot2"),
+  reference.reduction = "integrated.cca",
+  reduction.model = "umap.integrated"  
+)
+```
+
+
+```{r}
+ref_pre$origin <- "pre"
+query_post$origin <- "post"
+ref_pre$predicted.LSC_type <- ref_pre$immature_annot2
+
+ref_pre$immature_annot2 <- recode(ref_pre$immature_annot2, "LMPP-like" = "LMPP-LSC")
+ref_pre$predicted.LSC_type <- recode(ref_pre$predicted.LSC_type, "LMPP-like" = "LMPP-LSC")
+
+combined <- merge(ref_pre, query_post)
+palette_celltype <- c(
+  "LMPP-LSC"   = "#4E79A7",
+  "Stress-LSC"  = "#E15759",
+  "MEP-LSC"     = "#76B7B2",
+  "HSC-LSC"     = "#59A14F",
+  "Cycling-LSC" = "#9C755F"
+)
+
+```
+
+```{r}
+p3 <- DimPlot(ref_pre, 
+              reduction = "umap.integrated",
+              group.by = "immature_annot2",
+              cols = palette_celltype, split.by = "response") +
+      ggtitle("Pre-traitement") +
+      scale_x_reverse()  # ← inverser X
+query_post$predicted.LSC_type <- factor(query_post$predicted.LSC_type, levels = c("LMPP-LSC", "Stress-LSC", "MEP-LSC", "HSC-LSC", "Cycling-LSC"))
+p4 <- DimPlot(query_post, 
+              reduction = "ref.umap",
+              group.by = "predicted.LSC_type",
+              cols = palette_celltype, split.by = "response") +
+      ggtitle("Post-traitement") +
+      scale_x_reverse()  # ← même chose pour post
+
+#p3 | p4
+```
+
+```{r}
+p3
+p4
+```
+
+```{r}
+library(tidyr)
+
+Idents(query_post) <- "predicted.LSC_type"
+
+markers_all <- FindAllMarkers(
+  object = query_post,
+  only.pos = TRUE,          # marqueurs positifs
+  test.use = "wilcox",      # standard
+  min.pct = 0.25,
+  logfc.threshold = 0.5
+)
+
+markers_sig <- markers_all %>%
+  filter(p_val_adj < 0.05)
+
+top50_by_cluster <- markers_sig %>%
+  group_by(cluster) %>%
+  arrange(desc(avg_log2FC), .by_group = TRUE) %>%
+  slice_head(n = 50) %>%
+  ungroup()
+
+
+top50_wide <- top50_by_cluster %>%
+  dplyr::select(cluster, gene) %>%
+  group_by(cluster) %>%
+  mutate(rank = row_number()) %>%
+  ungroup() %>%
+  pivot_wider(
+    names_from = rank,
+    values_from = gene,
+    names_prefix = "top"
+  )
+
+
+table_markers_top50 <- top50_wide
+
+
+markers_top50_long <- top50_by_cluster
+
+
+
+table_markers_top50
+
+#write.csv(markers_top50_long, "gene_markers_merged_clusters.csv")
+```
+
+
+
+## Cell composition par Barplot
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(scales) 
+theme_clean <- theme_minimal(base_size = 12) +
+  theme(
+    plot.title       = element_text(face = "bold", size = 14, margin = margin(b = 6)),
+    plot.subtitle    = element_text(color = "grey40", size = 10, margin = margin(b = 12)),
+    axis.text.x      = element_text(angle = 40, hjust = 1, size = 10),
+    axis.text.y      = element_text(size = 10),
+    axis.title       = element_text(size = 11, color = "grey30"),
+    legend.title     = element_text(face = "bold", size = 10),
+    legend.text      = element_text(size = 9),
+    legend.position  = "right",
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_line(color = "grey90"),
+    panel.grid.minor   = element_blank(),
+    strip.text         = element_text(face = "bold"),
+    plot.margin        = margin(10, 15, 10, 10)
+  )
+
+
+df <- data.frame(
+  celltype         = ref_pre$immature_annot2,
+  patient_response = ref_pre$patient_response,
+  response         = ref_pre$response
+)
+
+
+
+count_response <- df %>%
+  dplyr::count(response, celltype, name = "n_cells") %>%
+  group_by(response) %>%
+  mutate(pct = n_cells / sum(n_cells)) %>%
+  ungroup()
+
+bp1 <- ggplot(count_response,
+             aes(x = response, y = n_cells, fill = celltype)) +
+  geom_bar(stat = "identity", width = 0.7, color = "white", linewidth = 0.3) +
+  scale_fill_manual(values = palette_celltype) +
+  scale_y_continuous(labels = label_comma(), expand = expansion(mult = c(0, 0.05))) +
+  labs(
+    title    = "",
+    subtitle = "Pre treatment",
+    x        = "",
+    y        = "Nb cell",
+    fill     = "Cell type"
+  ) +
+  theme_clean
+
+bp1_prop <- ggplot(count_response,
+                  aes(x = response, y = pct, fill = celltype)) +
+  geom_bar(stat = "identity", width = 0.7, color = "white", linewidth = 0.3) +
+  scale_fill_manual(values = palette_celltype) +
+  scale_y_continuous(labels = percent_format(), expand = expansion(mult = c(0, 0.03))) +
+  labs(
+    title    = "",
+    subtitle = "Pre treatment",
+    x        = "",
+    y        = "Cell Prop %",
+    fill     = "Cell type"
+  ) +
+  theme_clean
+
+
+```
+
+```{r}
+
+theme_clean <- theme_minimal(base_size = 12) +
+  theme(
+    plot.title       = element_text(face = "bold", size = 14, margin = margin(b = 6)),
+    plot.subtitle    = element_text(color = "grey40", size = 10, margin = margin(b = 12)),
+    axis.text.x      = element_text(angle = 40, hjust = 1, size = 10),
+    axis.text.y      = element_text(size = 10),
+    axis.title       = element_text(size = 11, color = "grey30"),
+    legend.title     = element_text(face = "bold", size = 10),
+    legend.text      = element_text(size = 9),
+    legend.position  = "right",
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_line(color = "grey90"),
+    panel.grid.minor   = element_blank(),
+    strip.text         = element_text(face = "bold"),
+    plot.margin        = margin(10, 15, 10, 10)
+  )
+
+
+query_post$predicted.LSC_type <- factor(query_post$predicted.LSC_type, levels = c("LMPP-LSC", "Stress-LSC", "MEP-LSC", "HSC-LSC", "Cycling-LSC"))
+df2 <- data.frame(
+  celltype         = query_post$predicted.LSC_type,
+  patient_response = query_post$patient_response,
+  response         = query_post$response
+)
+
+
+count_patient <- df2 %>%
+  dplyr::count(patient_response, celltype, name = "n_cells") %>%
+  group_by(patient_response) %>%
+  mutate(pct = n_cells / sum(n_cells)) %>%
+  ungroup()
+
+bp2 <- ggplot(count_patient,
+             aes(x = patient_response, y = n_cells, fill = celltype)) +
+  geom_bar(stat = "identity", width = 0.7, color = "white", linewidth = 0.3) +
+  scale_fill_manual(values = palette_celltype) +
+  scale_y_continuous(labels = label_comma(), expand = expansion(mult = c(0, 0.05))) +
+  labs(
+    title    = "Cell type composition per patient",
+    subtitle = "Post treatment",
+    y        = "Nb of cels",
+    fill     = "cell type"
+  ) +
+  theme_clean
+
+
+bp2_prop <- ggplot(count_patient,
+                  aes(x = patient_response, y = pct, fill = celltype)) +
+  geom_bar(stat = "identity", width = 0.7, color = "white", linewidth = 0.3) +
+  scale_fill_manual(values = palette_celltype) +
+  scale_y_continuous(labels = percent_format(), expand = expansion(mult = c(0, 0.03))) +
+  labs(
+    title    = "Cell type composition per patient",
+    subtitle = "Post treatment",
+    x        = "",
+    y        = "Cell Prop %",
+    fill     = "Cell type"
+  ) +
+  theme_clean
+
+
+count_response <- df2 %>%
+  dplyr::count(response, celltype, name = "n_cells") %>%
+  group_by(response) %>%
+  mutate(pct = n_cells / sum(n_cells)) %>%
+  ungroup()
+
+bp3 <- ggplot(count_response,
+             aes(x = response, y = n_cells, fill = celltype)) +
+  geom_bar(stat = "identity", width = 0.7, color = "white", linewidth = 0.3) +
+  scale_fill_manual(values = palette_celltype) +
+  scale_y_continuous(labels = label_comma(), expand = expansion(mult = c(0, 0.05))) +
+  labs(
+    title    = "",
+    subtitle = "Post treatment",
+    x        = "",
+    y        = "Nb cell",
+    fill     = "Cell type"
+  ) +
+  theme_clean
+
+bp3_prop <- ggplot(count_response,
+                  aes(x = response, y = pct, fill = celltype)) +
+  geom_bar(stat = "identity", width = 0.7, color = "white", linewidth = 0.3) +
+  scale_fill_manual(values = palette_celltype) +
+  scale_y_continuous(labels = percent_format(), expand = expansion(mult = c(0, 0.03))) +
+  labs(
+    title    = "",
+    subtitle = "Post treatment",
+    x        = "",
+    y        = "Cell Prop %",
+    fill     = "Cell type"
+  ) +
+  theme_clean
+
+
+bp1
+bp1_prop
+bp2
+bp2_prop
+bp3
+bp3_prop
+```
+

@@ -95,6 +95,21 @@ niveaux_ordonnes <- c("P1_refractory", "P4_refractory","P2_responder", "P3_respo
 # 3. On transforme la colonne EN FACTEUR avec ces niveaux
 poolA_et_B$patient_response <- factor(poolA_et_B$patient_response, 
                                        levels = niveaux_ordonnes)
+
+Idents(poolA_et_B) <- "response"
+#reponse
+# 1. Créer la colonne combinée dans les métadonnées
+poolA_et_B$response_timepoint <- paste0( poolA_et_B$response, "_", poolA_et_B$timepoint)
+
+# 2. On définit les niveaux SANS faute de frappe (bien écrire 'post' partout)
+niveaux_ordonnes <- c("responder_pre", "responder_post","refractory_pre", "refractory_post")
+
+# 3. On transforme la colonne EN FACTEUR avec ces niveaux
+poolA_et_B$response_timepoint <- factor(poolA_et_B$response_timepoint, 
+                                       levels = niveaux_ordonnes)
+
+poolA_et_B$response <- factor(poolA_et_B$response, levels = c("responder", "refractory"))
+table(poolA_et_B$response)
 ```
 
 ```{r}

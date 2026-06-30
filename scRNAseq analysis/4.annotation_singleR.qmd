@@ -9,15 +9,17 @@ editor: visual
 library(tidyverse) # includes ggplot2, for data visualisation. dplyr, for data manipulation.
 library(Seurat)
 library(scuttle)
+set.seed(123)
 ```
 
 ```{r}
-poolA_et_B <-  readRDS("020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase.rds")
+poolA_et_B <-  readRDS("020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred.rds")
 ```
 
 # annotation
 
 ##chargement library + atlas
+
 ```{r}
 library(SingleR)
 library(caret)
@@ -32,7 +34,9 @@ ref <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/C
 ```
 
 ## annotation pool A et B
+
 ### res 0.8
+
 ```{r}
 #Idents(poolA_et_B) <- poolA_et_B$cca_clusters
 # Join layers first
@@ -80,7 +84,7 @@ options(ggrepel.max.overlaps = Inf)
 
 annot_main <- DimPlot(
   poolA_et_B,
-  reduction = "umap.cca_0_8",
+  reduction = "umap.integrated",
   group.by = "SingleR_main_poolA_et_B",
   label = TRUE, label.size = 4, pt.size = 0.3,
   repel = TRUE
@@ -88,20 +92,20 @@ annot_main <- DimPlot(
 
 annot_fine <- DimPlot(
   poolA_et_B,
-  reduction = "umap.cca",
+  reduction = "umap.integrated",
   group.by = "SingleR_fine_poolA_et_B",
-  label = TRUE, label.size = 4, pt.size = 0.3,
+   pt.size = 0.3,
   repel = TRUE
-) + theme_bw()
+)
 
 ggsave( "annot_main.jpeg",annot_main, width = 15)
-ggsave( "annot_fine.jpeg",annot_fine, width = 15)
+ggsave( "annot_fine_no label.jpeg",annot_fine, width = 15)
 
 table(poolA_et_B$cca_clusters)
 
 DimPlot(
   poolA_et_B,
-  reduction = "umap.cca",
+  reduction = "umap.integrated",
   group.by = "cca_clusters",
   label = TRUE,
   repel = TRUE
@@ -109,7 +113,7 @@ DimPlot(
 
 DimPlot(
   poolA_et_B,
-  reduction = "umap.cca",
+  reduction = "umap.integrated",
   group.by = "seurat_clusters",
   label = TRUE,
   repel = TRUE
@@ -120,7 +124,7 @@ DimPlot(
 
 ```{r}
 count_per_cell_type <- poolA_et_B@meta.data %>%
-  count(SingleR_fine_poolA_et_B) %>%
+  dplyr::count(SingleR_fine_poolA_et_B) %>%
   ggplot(aes(x = SingleR_fine_poolA_et_B, y = n, fill = SingleR_fine_poolA_et_B)) +
   geom_bar(stat = "identity") +
   theme_bw() +
@@ -133,7 +137,7 @@ count_per_cell_type <- poolA_et_B@meta.data %>%
 ggsave( "cellcount_per_cell_type_fine.jpeg",count_per_cell_type, width = 15, height = 10)
 
 count_per_cell_type_main <- poolA_et_B@meta.data %>%
-  count(SingleR_main_poolA_et_B) %>%
+  dplyr::count(SingleR_main_poolA_et_B) %>%
   ggplot(aes(x = SingleR_main_poolA_et_B, y = n, fill = SingleR_main_poolA_et_B)) +
   geom_bar(stat = "identity") +
   theme_bw() +
@@ -147,7 +151,9 @@ ggsave( "cellcount_per_cell_type_main.jpeg",count_per_cell_type_main, width = 15
 ```
 
 ## find marker par cell type
+
 ### res 0.8
+
 ```{r}
 #poolA et B 
 #cell type
@@ -182,13 +188,15 @@ top30_fine <- markers_poolA_et_B_annot_fine %>%
 write.csv( markers_poolA_et_B_annot_fine, "markers_poolA_et_B_annot_fine_filtered.csv")
 write.csv( top30_fine, "markers_poolA_et_B_annot_fine_top30_filtered.csv")
 
-FeaturePlot(poolA_et_B, features = c("TSHZ2", "LEF1" , "LINC01891", "CD28", "ICOS", "CAMK4"), reduction = "umap.cca_0_8")
+FeaturePlot(poolA_et_B, features = c("TSHZ2", "LEF1" , "LINC01891", "CD28", "ICOS", "CAMK4"), reduction = "umap.integrated")
 VlnPlot(poolA_et_B, features =  c("TSHZ2", "LEF1" , "LINC01891", "CD28", "ICOS", "CAMK4"))
-DimPlot(poolA_et_B, reduction = "umap.cca",label = TRUE, label.size = 4, pt.size = 0.3)
+DimPlot(poolA_et_B, reduction = "umap.integrated",label = TRUE, label.size = 4, pt.size = 0.3)
 ```
 
 ## find marker par cluster
+
 ### res 0.8
+
 ```{r}
 #poolA et B 
 #cell type
@@ -205,7 +213,7 @@ top30_cluster <- markers_poolA_et_B_cluster %>%
   slice_max(n = 30, order_by = avg_log2FC)
 
 write.csv(markers_poolA_et_B_cluster, "markers_poolA_et_B_cluster_res_0_4.csv")
-write.csv(top30_cluster, "markers_poolA_et_B_top30_cluster_res_0_4.csv")
+#write.csv(top30_cluster, "markers_poolA_et_B_top30_cluster_res_0_4.csv")
 
 FeaturePlot(poolA_et_B, features = c("TYROBP",
 "LST1",
@@ -226,12 +234,342 @@ FeaturePlot(poolA_et_B, features = c("TYROBP",
 "LGALS1",
 "MNDA",
 "FCN1",
-"LYZ"),reduction = "umap.cca_0_8")
-VlnPlot(poolA_et_B, features = top30_cluster)
+"LYZ"),reduction = "umap.integrated")
+#VlnPlot(poolA_et_B, features = top30_cluster)
+```
+
+# suppresion de celltype
+
+```{r}
+poolA_et_B <- readRDS("020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt_13_04.rds")
+```
+
+```{r}
+# 1. On définit les types à garder
+Idents(poolA_et_B) <- poolA_et_B$SingleR_fine_poolA_et_B
+cell_types_to_focus <- c("LSC", "HSC", "HSPC", "GMP","GMP-like", "Prog", "MEP","earlyEry","ProMono","ProMono-like","cDC-like","HSC-like","Prog-like")
+
+poolA_et_B$highlight3 <- ifelse(
+  poolA_et_B$SingleR_fine_poolA_et_B %in% cell_types_to_focus,
+  as.character(poolA_et_B$SingleR_fine_poolA_et_B),"xxxxx")
+
+# 2. On subset l'objet
+pool_focus2 <- subset(poolA_et_B, subset = highlight3 %in% cell_types_to_focus)
+
+# 3. On nettoie les niveaux (levels) pour éviter que les anciens types fantômes n'apparaissent
+pool_focus2$highlight3 <- droplevels(as.factor(pool_focus2$highlight3))
+```
+
+```{r}
+library(dplyr)
+
+stats_focus <- pool_focus@meta.data %>%
+  group_by(patient, timepoint, highlight2) %>%
+  tally() %>%
+  # On calcule le total de chaque type par patient (Pre + Post réunis)
+  group_by(patient, highlight2) %>%
+  mutate(total_this_type = sum(n)) %>%
+  # On calcule le pourcentage de répartition
+  mutate(percent_distribution = (n / total_this_type) * 100) %>%
+  ungroup()
+
+# On vérifie les chiffres pour tes LSC
+print(subset(stats_focus, highlight2 == "LSC"))
+```
+
+```{r}
+umap_focus <- DimPlot(pool_focus2, 
+                      group.by = "highlight3", 
+                      reduction = "umap.integrated", 
+                      pt.size = 1.2)
+
+umap_focus
+```
+
+```{r}
+library(SingleR)
+library(caret)
+library(patchwork)
+library("ggplot2")
+library('viridis')
+library('pheatmap')
+
+ref <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/Ref_annotation/AML_downsampled_ref_fixed2_with_umap.rds")
+```
+
+```{r}
+#Idents(poolA_et_B) <- poolA_et_B$cca_clusters
+# Join layers first
+#poolA et B
+ref_mat_poolA_et_B  <- GetAssayData(ref, layer = "data")
+#"ref2_mat_poolA_et_B  <- GetAssayData(ref2, layer = "data")
+test_mat_poolA_et_B <- GetAssayData(pool_focus, layer = "data")
+#ref_labels <- as.character(ref$Cell.Type)
+#names(ref_labels) <- colnames(ref_mat_poolA_et_B)
+
+#head(test_mat_poolA_et_B)
+#head(ref_mat_poolA_et_B)
+
+common_genes_poolA_et_B <- intersect(rownames(ref_mat_poolA_et_B), rownames(test_mat_poolA_et_B))
+length(common_genes_poolA_et_B)
+
+
+pred2_poolA_et_B <- SingleR(test = test_mat_poolA_et_B, ref = ref_mat_poolA_et_B, labels = ref$HSPC.Cell.Type, de.method="wilcox", de.n=20)
+
+pred2_poolA_et_B$scores[1:10,]
+plotScoreHeatmap(pred2_poolA_et_B)
+
+pool_focus$new_subset_SingleR_fine_poolA_et_B  <- pred2_poolA_et_B$labels
+pool_focus@meta.data[["new_subset_SingleR_fine_poolA_et_B"]]
+
+options(ggrepel.max.overlaps = Inf)
+
+
+annot_fine <- DimPlot(
+  pool_focus,
+  reduction = "umap.integrated",
+  group.by = "SingleR_fine_poolA_et_B",
+   pt.size = 0.3,
+  repel = TRUE
+)
+
+ggsave( "annot_fine_subset_nolabel.jpeg",annot_fine, width = 10)
+
+```
+
+```{r}
+ref2 <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/OpenAccess/AML_scRNAseq/Atlas/BoneMarrowMap_Annotated_Dataset_2025_ZengDick.rds")
+```
+
+```{r}
+#poolA et B
+ref2_mat_poolA_et_B  <- GetAssayData(ref2, layer = "data")
+test2_mat_poolA_et_B <- GetAssayData(pool_focus2, layer = "data")
+
+head(test2_mat_poolA_et_B)
+head(ref2_mat_poolA_et_B)
+
+common_genes2_poolA_et_B <- intersect(rownames(ref2_mat_poolA_et_B), rownames(test2_mat_poolA_et_B))
+length(common_genes2_poolA_et_B)
+
+pred3_poolA_et_B <- SingleR(test = test2_mat_poolA_et_B, ref = ref2_mat_poolA_et_B, labels = ref2$CellType, de.method="wilcox", de.n=20)
+colnames(pred3_poolA_et_B)
+
+head(sort(table(pred3_poolA_et_B$labels), decreasing=TRUE))
+table(pred3_poolA_et_B$labels)
+head(pred3_poolA_et_B$labels)
+
+pred3_poolA_et_B$scores[1:10,]
+plotScoreHeatmap(pred3_poolA_et_B)
+
+
+pool_focus2$SingleR2_poolA_et_B  <- pred3_poolA_et_B$labels
+pool_focus2@meta.data[["SingleR2_poolA_et_B"]]
+
+options(ggrepel.max.overlaps = Inf)
+
+DimPlot(
+  pool_focus2,
+  reduction = "umap.cca0",
+  group.by = "SingleR2_poolA_et_B",
+  label = TRUE,
+  repel = TRUE
+) + theme_bw()
+
+#ggsave("annot2.jpeg", annot2,width = 20, height = 10 )
+```
+
+# renommer prog et prog-like wt 2atlas
+
+```{r}
+# 1. On crée une nouvelle colonne pour ne pas perdre l'originale
+pool_focus2$final_ref_annotation <- pool_focus2$SingleR_fine_poolA_et_B
+
+# 2. On identifie les cellules qui sont "Prog" dans la ref 1
+is_prog <- pool_focus2$SingleR_fine_poolA_et_B == "Prog"
+
+# 3. Pour ces cellules uniquement, on remplace par la valeur de la ref 2
+pool_focus2@meta.data$final_ref_annotation[is_prog] <- pool_focus2@meta.data$highlight4[is_prog]
+
+# 4. On vérifie le résultat
+table(pool_focus2$final_ref_annotation)
+
+# 2. On identifie les cellules qui sont "Prog" dans la ref 1
+is_prog_like <- pool_focus2$final_ref_annotation == "Prog-like"
+
+# 3. Pour ces cellules uniquement, on remplace par la valeur de la ref 2
+pool_focus2@meta.data$final_ref_annotation[is_prog_like] <- pool_focus2@meta.data$highlight4[is_prog_like]
+
+# 4. On vérifie le résultat
+table(pool_focus2$final_ref_annotation)
+
+DimPlot(
+  pool_focus2,
+  reduction = "umap.cca0",
+  group.by = "final_ref_annotation",
+  
+  repel = TRUE
+) + theme_bw()
+
+Idents(pool_focus2) <- "final_ref_annotation"
+
+new.cluster.ids <- c("HSC" = "HSC", 
+                     "HSC-like" = "HSC", 
+                     "HSPC"= "HSPC",
+                     "LSC" = "LSC",
+                     "MEP" = "MEP",
+                     "BFU-E" = "Ery/MK", 
+                     "CFU-E" = "Ery/MK", 
+                     "earlyEry" = "Ery/MK",
+                     "Erythroid" = "Ery/MK",
+                     "lateEry" = "Ery/MK",
+                     "Megakaryocyte Precursor" = "Ery/MK", 
+                     "cDC" = "cDC",
+                     "cDC-like" = "cDC-like",
+                     "cDC1" = "cDC",
+                     "cDC2" = "cDC",
+                     "CLP" = "Cycling progenitor",
+                     "Cycling Progenitor" = "Cycling progenitor",
+                     "Large Pre-B" = "Lymphoid-primed Progenitors",
+                     "Mature B" = "Lymphoid-primed Progenitors",
+                     "Pre-cDC" = "cDC",
+                     "Pre-pDC" = "Lymphoid-primed Progenitors",
+                     "Pre-pDC Cycling" = "Lymphoid-primed Progenitors",
+                     "Pre-ProB" = "Lymphoid-primed Progenitors",
+                     "Pro-B Cycling" = "Lymphoid-primed Progenitors",
+                     "Pro-B VDJ" = "Lymphoid-primed Progenitors",
+                     "GMP-Cycle" = "Lymphoid-primed Progenitors",
+                     "GMP" = "Mye/GMP/Mono",
+                     "Early GMP" = "Mye/GMP/Mono",
+                     "Mono" = "Mye/GMP/Mono",
+                     "Mono-like" = "Mye/GMP/Mono",
+                     "ProMono" = "ProMono",
+                     "ProMono-like" = "ProMono",
+                     "GMP-Mono" = "Mye/GMP/Mono",
+                     "GMP-Neut" = "Mye/GMP/Mono",
+                     "EoBasoMast Precursor" = "Mye/GMP/Mono",
+                     "ProMono" = "Mye/GMP/Mono",
+                     "ProMono-like" = "Mye/GMP/Mono",
+                     "MLP" = "MLP",
+                     "MLP-II" = "MLP",
+                     "LMPP" = "LMPP",
+                     "MPP-MkEry" = "MPP-MkEry",
+                     "MPP-MyLy" = "MPP-MyLy")
+
+# On applique le renommage
+pool_focus2 <- RenameIdents(pool_focus2, new.cluster.ids)
+
+# Optionnel : Sauvegarder ces nouveaux noms dans les métadonnées
+pool_focus2$renamed_cell_type <- Idents(pool_focus2)
+
+DimPlot(
+  pool_focus2,
+  reduction = "umap.cca01",
+  group.by = "renamed_cell_type",
+  cols = c("cDC-like"="#bfe83b",
+    "HSC" = "#b786e0", "Mye/GMP/Mono" ="#FF00CC", "MEP" = "#ff80a0", 
+    "Ery/MK" = "#00bbff", "Lymphoid-primed Progenitors" = "#be6042", 
+    "LSC" = "black", "MLP" = "#498083", "Cycling progenitor" = "#fca8d1", 
+    "ProMono" ="#59e4c5", "HSPC" = "#00FF00", "LMPP" = "#d8b116",
+    "MPP-MkEry" = "red", "MPP-MyLy" = "#FFFF00"),
+  repel = TRUE
+) 
+```
+
+#enlever immature
+
+```{r}
+# Liste des populations à conserver (Stem & Progenitors)
+populations_immatures <- c(
+  "HSC", "LMPP", "MPP-MyLy", "MPP-MkEry", "CLP", "MLP", "MLP-II", 
+  "MEP", "GMP-Cycle", "GMP-Mono", "GMP-Neut", "Early GMP", "Cycling Progenitor",
+  "Early ProMono", "Late ProMono", "EoBasoMast Precursor", "Megakaryocyte Precursor",
+  "BFU-E", "CFU-E", "Pro-Erythroblast", "Pre-ProB", "Pro-B Cycling", "Pro-B VDJ",
+  "Large Pre-B", "Small Pre-B", "Pre-cDC", "Pre-pDC"
+)
+
+pool_focus2$highlight4 <- ifelse(
+  pool_focus2$SingleR2_poolA_et_B %in% populations_immatures,
+  as.character(pool_focus2$SingleR2_poolA_et_B),"xxxxx")
+
+# 2. On subset l'objet
+pool_focus2 <- subset(pool_focus2, subset = highlight4 %in% populations_immatures)
+
+# 3. On nettoie les niveaux (levels) pour éviter que les anciens types fantômes n'apparaissent
+pool_focus2$highlight4 <- droplevels(as.factor(pool_focus2$highlight4))
+
+DimPlot(
+  pool_focus2,
+  reduction = "umap.cca0",
+  group.by = "highlight4",
+  label = TRUE,
+  repel = TRUE
+) + theme_bw()
+
+Idents(pool_focus2) <- "highlight4"
+pool_focus2 <-  FindNeighbors(pool_focus2, reduction = "integrated.cca", dim = 1:30, k.param = 8)
+pool_focus2 <- FindClusters(pool_focus2, resolution = 0.4, cluster.name = "cluster.cca01")
+pool_focus2 <- RunUMAP(pool_focus2, reduction = "integrated.cca", dims = 1:30, reduction.name = "umap.cca01")
+DimPlot(pool_focus2, reduction = "umap.cca01")
+
+Idents(pool_focus2) <- "cluster.cca01"
+markers <- FindAllMarkers(pool_focus2, 
+                               only.pos = TRUE, 
+                               min.pct = 0.1, 
+                               logfc.threshold = 0.25)
+
+write.csv(markers, "markers_cluster_lfc025.csv")
+```
+
+```{r}
+library(dplyr)
+
+# 1. Définir les identités sur les clusters
+Idents(pool_focus2) <- "cluster.cca01"
+
+# 2. Obtenir la liste de tous les clusters uniques
+all_clusters <- levels(Idents(pool_focus2))
+
+# 3. Créer un dossier pour stocker les fichiers (plus propre)
+if(!dir.exists("Markers_by_Cluster2")) {
+  dir.create("Markers_by_Cluster2")
+}
+
+# 4. La Boucle
+for (clust in all_clusters) {
+  
+  message(paste("Calcul des marqueurs pour le cluster :", clust))
+  
+  # Calcul des marqueurs pour le cluster actuel VS tout le reste
+  cluster_markers <- FindMarkers(
+    object = pool_focus2,
+    ident.1 = clust,
+    only.pos = TRUE,
+    min.pct = 0.1,
+    logfc.threshold = 0.25
+  )
+  
+  # Ajouter une colonne avec le nom du cluster pour la clarté
+  cluster_markers$gene <- rownames(cluster_markers)
+  
+  # Nettoyer le nom du fichier (enlever les caractères spéciaux si besoin)
+  file_name <- paste0("Markers_by_Cluster2/Markers_Cluster_", clust, ".csv")
+  
+  # Sauvegarde en CSV
+  write.csv(cluster_markers, file = file_name, row.names = FALSE)
+}
+
+message("Terminé ! Tous les fichiers sont dans le dossier 'Markers_by_Cluster'.")
 ```
 
 #save
+
 ```{r}
-saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_sex_phase_annot.rds")
+saveRDS(pool_focus2, file = "pool_focus2_020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt_newannot_12_05.rds")
 ```
 
+#save
+
+```{r}
+saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot.rds")
+```

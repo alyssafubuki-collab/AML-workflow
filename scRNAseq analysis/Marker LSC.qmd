@@ -135,7 +135,7 @@ for (comb in combinations) {
     p <- FeaturePlot(
       subset_obj, 
       features = scores_to_plot[i], 
-      reduction = "umap.cca0", 
+      reduction = "umap.integrated", 
       cols = c("gray88", "gray", "red4"),
       min.cutoff = -1, 
       max.cutoff = 1

@@ -34,6 +34,10 @@ pool2 <- FindVariableFeatures(pool2)
 pool2 <- ScaleData(pool2)
 pool2 <- RunPCA(pool2, features = VariableFeatures(pool2))
 ```
+Augmenter la limite à 4 Go
+```{r}
+options(future.globals.maxSize = 4000 * 1024^2)
+```
 
 # integration ref = pre ttt
 ```{r}

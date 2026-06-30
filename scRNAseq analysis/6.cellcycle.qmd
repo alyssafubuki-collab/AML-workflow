@@ -171,7 +171,7 @@ poolA_et_B <- CellCycleScoring(poolA_et_B, s.features = s.genes, g2m.features = 
 # (G1, S, G2M)
 Idents(poolA_et_B) <- poolA_et_B$Phase
 
-DimPlot(poolA_et_B, reduction = "umap.cca_0_8") + 
+DimPlot(poolA_et_B, reduction = "umap.integrated") + 
   scale_color_manual(values = color_phases) +
   theme_bw() + # Optionnel, pour un fond propre
   ggtitle("Cell Cycle Phase Distribution on UMAP")
@@ -237,7 +237,7 @@ poolA_et_B <- doubletFinder(poolA_et_B, PCs = 1:20, pN = 0.25, pK = 0.01, nExp =
 
 Idents(poolA_et_B) <- "DF.classifications_0.25_0.01_1814"
 
-DimPlot(poolA_et_B, reduction = "umap.cca_0_8")
+DimPlot(poolA_et_B, reduction = "umap.integrated")
 ```
 
 #save

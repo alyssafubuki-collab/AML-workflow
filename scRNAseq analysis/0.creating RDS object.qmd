@@ -27,7 +27,7 @@ library(scuttle)
 
 ```{r}
 #020_010_D refractaire
-inputMatrixDirOB1 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolA/poolA_output/outs/per_sample_outs/020_010_D/count/sample_filtered_feature_bc_matrix"
+inputMatrixDirOB1 <- "chemin d'acces"
 
 if(!dir.exists(inputMatrixDirOB1)){
   stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB1))
@@ -46,7 +46,7 @@ cts_OB1 <- OB1$`Gene Expression`
 adt_OB1 <- OB1$`Antibody Capture`
 
 #020_010_F
-inputMatrixDirOB2 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolA/poolA_output/outs/per_sample_outs/020_010_F/count/sample_filtered_feature_bc_matrix"
+inputMatrixDirOB2 <- "chemin d'acces"
 
 if(!dir.exists(inputMatrixDirOB2)){
   stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB2))
@@ -65,7 +65,7 @@ cts_OB2 <- OB2$`Gene Expression`
 adt_OB2 <- OB2$`Antibody Capture`
 
 #042_025_D repondeur
-inputMatrixDirOB3 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolA/poolA_output/outs/per_sample_outs/042_025_D/count/sample_filtered_feature_bc_matrix"
+inputMatrixDirOB3 <- "chemin d'acces"
 
 if(!dir.exists(inputMatrixDirOB3)){
   stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB3))
@@ -84,7 +84,7 @@ cts_OB3 <- OB3$`Gene Expression`
 adt_OB3 <- OB3$`Antibody Capture`
 
 #042_025_F
-inputMatrixDirOB4 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolA/poolA_output/outs/per_sample_outs/042_025_F/count/sample_filtered_feature_bc_matrix"
+inputMatrixDirOB4 <- "chemin d'acces"
 
 if(!dir.exists(inputMatrixDirOB4)){
   stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB4))
@@ -109,7 +109,7 @@ adt_OB4 <- OB4$`Antibody Capture`
 ```{r}
 #008_034_D repondant
 
-inputMatrixDirOB5 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolB/poolB_output/outs/per_sample_outs/008_034_D/count/sample_filtered_feature_bc_matrix"
+inputMatrixDirOB5 <- "chemin d'acces"
 
 if(!dir.exists(inputMatrixDirOB5)){
   stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB5))
@@ -128,7 +128,7 @@ cts_OB5 <- OB5$`Gene Expression`
 adt_OB5 <- OB5$`Antibody Capture`
 
 #008_034_F
-inputMatrixDirOB6 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolB/poolB_output/outs/per_sample_outs/008_034_F/count/sample_filtered_feature_bc_matrix"
+inputMatrixDirOB6 <- "chemin d'acces"
 
 if(!dir.exists(inputMatrixDirOB6)){
   stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB6))
@@ -147,7 +147,7 @@ cts_OB6 <- OB6$`Gene Expression`
 adt_OB6 <- OB6$`Antibody Capture`
 
 #095_017_D refractaire
-inputMatrixDirOB7 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolB/poolB_output/outs/per_sample_outs/095_017_D/count/sample_filtered_feature_bc_matrix"
+inputMatrixDirOB7 <- "chemin d'acces"
 
 if(!dir.exists(inputMatrixDirOB7)){
   stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB7))
@@ -166,7 +166,7 @@ cts_OB7 <- OB7$`Gene Expression`
 adt_OB7 <- OB7$`Antibody Capture`
 
 #095_017_F
-inputMatrixDirOB8 <- "O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/cellranger_output_poolB/poolB_output/outs/per_sample_outs/095_017_F/count/sample_filtered_feature_bc_matrix"
+inputMatrixDirOB8 <- "chemin d'acces"
 
 if(!dir.exists(inputMatrixDirOB8)){
   stop(paste("ERREUR : Le dossier n'existe pas :", inputMatrixDirOB8))

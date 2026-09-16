@@ -16,10 +16,10 @@ library(Seurat)
 library(ggplot2)
 library(patchwork) 
 library(dplyr) # ◄— BIEN VÉRIFIER QUE CETTE LIGNE EST EXÉCUTÉE
-#intg_obj  <- readRDS("only_for_ED_Rahma/pool_integrated.rds")
-ref_pre <-  readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/aml2ndaire/only_for_ED_Rahma/pool_pre_immature.rds")
+#intg_obj  <- readRDS("pool_integrated.rds")
+ref_pre <-  readRDS("pool_pre_immature.rds")
 ref_pre$immature_annot2 <- droplevels(ref_pre$immature_annot2)
-pool2 <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/aml2ndaire/aml_2nd rds/pool_integrated.rds")
+pool2 <- readRDS("pool_integrated.rds")
 ```
 
 ```{r}

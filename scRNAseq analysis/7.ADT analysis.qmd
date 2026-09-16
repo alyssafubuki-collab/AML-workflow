@@ -13,7 +13,7 @@ set.seed(123)
 ```
 
 ```{r}
-poolA_et_B <-  readRDS("020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase.rds")
+poolA_et_B <-  readRDS("data_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase.rds")
 ```
 
 # ADT
@@ -669,5 +669,5 @@ FeaturePlot(pool_focus2, features = c("CD34-ADT", "CD117-ADT", "CD90-ADT"), blen
 #save
 
 ```{r}
-saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt.rds")
+saveRDS(poolA_et_B, file = "data_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt.rds")
 ```

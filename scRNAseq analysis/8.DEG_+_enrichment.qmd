@@ -16,8 +16,8 @@ editor: visual
 
 library(Seurat)
 library(ggplot2)
-pool_pre_all <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/aml2ndaire/aml_2nd rds/pool_pre_all.rds")
-query_post  <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/aml2ndaire/only_for_ED_Rahma/pool_post_ttt.rds")
+pool_pre_all <- readRDS("pool_pre_all.rds")
+query_post  <- readRDS("pool_post_ttt.rds")
 ```
 
 ```{r}
@@ -26,7 +26,7 @@ query_post  <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab M
 
 ```{r}
 #markers_f <- markers[markers$p_val_adj <= 0.05, ]
-#write.table(markers, "~/Documents/For_alyssa/markers_poolpre.tsv", row.names = F)
+#write.table(markers, "markers_poolpre.tsv", row.names = F)
 ```
 
 ```{r}
@@ -38,8 +38,8 @@ p <- DimPlot(pool_pre_all, split.by = "patient_response")
 pp <- DimPlot(pool_pre_all, split.by = "response_timepoint")
 p
 pp
-#ggsave("~/Documents/For_alyssa/umap_patients_pre_ttt.png", p, width = 10)
-#ggsave("~/Documents/For_alyssa/umap_reponse_pre_ttt.png", pp)
+#ggsave("umap_patients_pre_ttt.png", p, width = 10)
+#ggsave("umap_reponse_pre_ttt.png", pp)
 ```
 
 ## Subset Pre-treatment
@@ -1044,7 +1044,7 @@ markers_top50_long <- top50_by_cluster
 
 table_markers_top50
 
-#write.table(markers_top50_long, "~/Documents/For_alyssa/gene_markers_merged_clusters.tsv")
+#write.table(markers_top50_long, "gene_markers_merged_clusters.tsv")
 ```
 
 

@@ -13,7 +13,7 @@ set.seed(123)
 ```
 
 ```{r}
-poolA_et_B <-  readRDS("020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex.rds")
+poolA_et_B <-  readRDS("data_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex.rds")
 ```
 
 ## Cell cycle cyclone
@@ -157,7 +157,7 @@ poolA_et_B@meta.data %>%
 
 ```{r}
 # Read in the expression matrix The first row is a header row, the first column is rownames
-exp.mat <- read.table(file = "C:/Users/Chellal/Downloads/cell_cycle_vignette_files/nestorawa_forcellcycle_expressionMatrix.txt",
+exp.mat <- read.table(file = "cell_cycle_vignette_files/nestorawa_forcellcycle_expressionMatrix.txt",
     header = TRUE, as.is = TRUE, row.names = 1)
 
 # A list of cell cycle markers, from Tirosh et al, 2015, is loaded with Seurat.  We can
@@ -243,5 +243,5 @@ DimPlot(poolA_et_B, reduction = "umap.integrated")
 #save
 
 ```{r}
-saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase.rds")
+saveRDS(poolA_et_B, file = "data_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase.rds")
 ```

@@ -13,7 +13,7 @@ set.seed(123)
 ```
 
 ```{r}
-poolA_et_B <-  readRDS("020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot.rds")
+poolA_et_B <-  readRDS("data_filtered_with_adt_qc_outlierdrop_norm_dimred_annot.rds")
 ```
 
 ## sex classification
@@ -124,5 +124,5 @@ DoHeatmap(poolA_et_B,
 #save
 
 ```{r}
-saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex.rds")
+saveRDS(poolA_et_B, file = "data_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex.rds")
 ```

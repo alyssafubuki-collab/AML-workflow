@@ -13,7 +13,7 @@ set.seed(123)
 ```
 
 ```{r}
-poolA_et_B <-  readRDS("020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred.rds")
+poolA_et_B <-  readRDS("data_filtered_with_adt_qc_outlierdrop_norm_dimred.rds")
 ```
 
 # annotation
@@ -28,9 +28,9 @@ library("ggplot2")
 library('viridis')
 library('pheatmap')
 
-ref <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/Ref_annotation/AML_downsampled_ref_fixed2_with_umap.rds")
+ref <- readRDS("AML_downsampled_ref_fixed2_with_umap.rds")
 
-#ref2 <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/Ref_annotation/AML_ref_fixed2_with_umap.rds")
+#ref2 <- readRDS("AML_ref_fixed2_with_umap.rds")
 ```
 
 ## annotation pool A et B
@@ -241,7 +241,7 @@ FeaturePlot(poolA_et_B, features = c("TYROBP",
 # suppresion de celltype
 
 ```{r}
-poolA_et_B <- readRDS("020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt_13_04.rds")
+poolA_et_B <- readRDS("data_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt_13_04.rds")
 ```
 
 ```{r}
@@ -294,7 +294,7 @@ library("ggplot2")
 library('viridis')
 library('pheatmap')
 
-ref <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/Ref_annotation/AML_downsampled_ref_fixed2_with_umap.rds")
+ref <- readRDS("AML_downsampled_ref_fixed2_with_umap.rds")
 ```
 
 ```{r}
@@ -338,7 +338,7 @@ ggsave( "annot_fine_subset_nolabel.jpeg",annot_fine, width = 10)
 ```
 
 ```{r}
-ref2 <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/OpenAccess/AML_scRNAseq/Atlas/BoneMarrowMap_Annotated_Dataset_2025_ZengDick.rds")
+ref2 <- readRDS("BoneMarrowMap_Annotated_Dataset_2025_ZengDick.rds")
 ```
 
 ```{r}
@@ -565,11 +565,11 @@ message("Terminé ! Tous les fichiers sont dans le dossier 'Markers_by_Cluster'.
 #save
 
 ```{r}
-saveRDS(pool_focus2, file = "pool_focus2_020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt_newannot_12_05.rds")
+saveRDS(pool_focus2, file = "pool_focus2_data_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt_newannot_12_05.rds")
 ```
 
 #save
 
 ```{r}
-saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot.rds")
+saveRDS(poolA_et_B, file = "data_filtered_with_adt_qc_outlierdrop_norm_dimred_annot.rds")
 ```

@@ -211,7 +211,7 @@ adt_filtered <- adt_OB1[, Cells(OB1)]
 # 4. Add the assay
 OB1[["ADT"]] <- CreateAssay5Object(counts = adt_filtered)
 
-saveRDS(OB1, file = "020_010_D_filtered_with_adt.rds")
+saveRDS(OB1, file = "OB1_filtered_with_adt.rds")
 
 head(rownames(OB1))
 
@@ -235,7 +235,7 @@ adt_filtered <- adt_OB2[, Cells(OB2)]
 # 4. Add the assay
 OB2[["ADT"]] <- CreateAssay5Object(counts = adt_filtered)
 
-saveRDS(OB2, file = "020_010_F_filtered_with_adt.rds")
+saveRDS(OB2, file = "OB2_filtered_with_adt.rds")
 
 head(rownames(OB2))
 
@@ -259,7 +259,7 @@ adt_filtered <- adt_OB3[, Cells(OB3)]
 # 4. Add the assay
 OB3[["ADT"]] <- CreateAssay5Object(counts = adt_filtered)
 
-saveRDS(OB3, file = "042_025_D_filtered_with_adt.rds")
+saveRDS(OB3, file = "OB3_filtered_with_adt.rds")
 
 head(rownames(OB3))
 
@@ -283,7 +283,7 @@ adt_filtered <- adt_OB4[, Cells(OB4)]
 # 4. Add the assay
 OB4[["ADT"]] <- CreateAssay5Object(counts = adt_filtered)
 
-saveRDS(OB4, file = "042_025_F_filtered_with_adt.rds")
+saveRDS(OB4, file = "OB4_filtered_with_adt.rds")
 
 head(rownames(OB4))
 
@@ -312,7 +312,7 @@ adt_filtered <- adt_OB5[, Cells(OB5)]
 # 4. Add the assay
 OB5[["ADT"]] <- CreateAssay5Object(counts = adt_filtered)
 
-saveRDS(OB5, file = "008_034_D_filtered_with_adt.rds")
+saveRDS(OB5, file = "OB5_filtered_with_adt.rds")
 
 head(rownames(OB5))
 
@@ -336,7 +336,7 @@ adt_filtered <- adt_OB6[, Cells(OB6)]
 # 4. Add the assay
 OB6[["ADT"]] <- CreateAssay5Object(counts = adt_filtered)
 
-saveRDS(OB6, file = "008_034_F_filtered_with_adt.rds")
+saveRDS(OB6, file = "OB6_filtered_with_adt.rds")
 
 head(rownames(OB6))
 
@@ -360,7 +360,7 @@ adt_filtered <- adt_OB7[, Cells(OB7)]
 # 4. Add the assay
 OB7[["ADT"]] <- CreateAssay5Object(counts = adt_filtered)
 
-saveRDS(OB7, file = "095_017_D_filtered_with_adt.rds")
+saveRDS(OB7, file = "OB7_filtered_with_adt.rds")
 
 head(rownames(OB7))
 
@@ -384,7 +384,7 @@ adt_filtered <- adt_OB8[, Cells(OB8)]
 # 4. Add the assay
 OB8[["ADT"]] <- CreateAssay5Object(counts = adt_filtered)
 
-saveRDS(OB8, file = "095_017_F_filtered_with_adt.rds")
+saveRDS(OB8, file = "OB8_filtered_with_adt.rds")
 
 head(rownames(OB8))
 
@@ -407,7 +407,7 @@ poolA <- merge(
 # Should be ~38k genes and the sum of all cells
 print(dim(poolA))
 
-saveRDS(poolA, file = "020_010_042_025_filtered_with_adt.rds")
+saveRDS(poolA, file = "poolA_filtered_with_adt.rds")
 
 ```
 
@@ -426,7 +426,7 @@ poolB <- merge(
 # Should be ~38k genes and the sum of all cells
 print(dim(poolB))
 
-saveRDS(poolB, file = "008_034_095_017_filtered_with_adt.rds")
+saveRDS(poolB, file = "poolB_filtered_with_adt.rds")
 
 ```
 
@@ -445,6 +445,6 @@ poolA_et_B <- merge(
 # 1. Check the final cell count
 ncol(poolA_et_B)
 print(dim(poolA_et_B))
-saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt.rds")
+saveRDS(poolA_et_B, file = "data_filtered_with_adt.rds")
 
 ```

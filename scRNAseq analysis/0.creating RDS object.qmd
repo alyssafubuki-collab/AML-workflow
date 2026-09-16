@@ -26,7 +26,7 @@ library(scuttle)
 ## poolA
 
 ```{r}
-#020_010_D refractaire
+#OB1 : refractaire pre
 inputMatrixDirOB1 <- "chemin d'acces"
 
 if(!dir.exists(inputMatrixDirOB1)){
@@ -45,7 +45,7 @@ str(OB1) # Check the multiple modalities (list of matrixes) - we're interested i
 cts_OB1 <- OB1$`Gene Expression`
 adt_OB1 <- OB1$`Antibody Capture`
 
-#020_010_F
+#OB2 post
 inputMatrixDirOB2 <- "chemin d'acces"
 
 if(!dir.exists(inputMatrixDirOB2)){
@@ -64,7 +64,7 @@ str(OB2) # Check the multiple modalities (list of matrixes) - we're interested i
 cts_OB2 <- OB2$`Gene Expression`
 adt_OB2 <- OB2$`Antibody Capture`
 
-#042_025_D repondeur
+#OB3 repondeur pre
 inputMatrixDirOB3 <- "chemin d'acces"
 
 if(!dir.exists(inputMatrixDirOB3)){
@@ -83,7 +83,7 @@ str(OB3) # Check the multiple modalities (list of matrixes) - we're interested i
 cts_OB3 <- OB3$`Gene Expression`
 adt_OB3 <- OB3$`Antibody Capture`
 
-#042_025_F
+#OB4 post
 inputMatrixDirOB4 <- "chemin d'acces"
 
 if(!dir.exists(inputMatrixDirOB4)){
@@ -107,7 +107,7 @@ adt_OB4 <- OB4$`Antibody Capture`
 ## poolB
 
 ```{r}
-#008_034_D repondant
+#OB5 responder pre
 
 inputMatrixDirOB5 <- "chemin d'acces"
 
@@ -127,7 +127,7 @@ str(OB5) # Check the multiple modalities (list of matrixes) - we're interested i
 cts_OB5 <- OB5$`Gene Expression`
 adt_OB5 <- OB5$`Antibody Capture`
 
-#008_034_F
+#OB6 post
 inputMatrixDirOB6 <- "chemin d'acces"
 
 if(!dir.exists(inputMatrixDirOB6)){
@@ -146,7 +146,7 @@ str(OB6) # Check the multiple modalities (list of matrixes) - we're interested i
 cts_OB6 <- OB6$`Gene Expression`
 adt_OB6 <- OB6$`Antibody Capture`
 
-#095_017_D refractaire
+#OB7 refractaire pre
 inputMatrixDirOB7 <- "chemin d'acces"
 
 if(!dir.exists(inputMatrixDirOB7)){
@@ -165,7 +165,7 @@ str(OB7) # Check the multiple modalities (list of matrixes) - we're interested i
 cts_OB7 <- OB7$`Gene Expression`
 adt_OB7 <- OB7$`Antibody Capture`
 
-#095_017_F
+#OB8 post
 inputMatrixDirOB8 <- "chemin d'acces"
 
 if(!dir.exists(inputMatrixDirOB8)){

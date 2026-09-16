@@ -16,7 +16,7 @@ set.seed(123)
 
 
 ```{r}
-pool2 <- readRDS(("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/aml2ndaire/aml_2nd rds/020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop.rds"))
+pool2 <- readRDS(("data_filtered_with_adt_qc_outlierdrop.rds"))
 ```
 
 # split 

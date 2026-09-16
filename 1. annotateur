@@ -3,15 +3,15 @@ library("ggplot2")
 
 #upload file:
 
-AML_downsampled_ref_with_umap <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/Ref_annotation/AML_downsampled_ref_with_umap.rds")
+AML_downsampled_ref_with_umap <- readRDS("AML_downsampled_ref_with_umap.rds")
 
-data <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/seurat_obj/PBMC-0804616FH-0703537FL_PBMC-0806629FH-0204189HL_PBMC-1500689HH-1104677FL_PBMC-9700916HH-1410331FL.drop.qc.adt.integ.clean.rds")
+data <- readRDS("testdataset.drop.qc.adt.integ.clean.rds")
 
-ref2 <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/Ref_annotation/AML_downsampled_ref_fixed_with_umap.rds")
+ref2 <- readRDS("AML_downsampled_ref_fixed_with_umap.rds")
 
 getwd()
 
-features <- read.delim("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/Ref_annotation/matrix_files/features.tsv.gz",
+features <- read.delim("Ref_annotation/matrix_files/features.tsv.gz",
                        header = FALSE,
                        sep = "\t")
 rownames(ref2) <- features$V2
@@ -447,9 +447,9 @@ library(scAnnoX)
 library(SingleCellExperiment)
 
 # Import single cell profiles.
-data <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/seurat_obj/PBMC-0804616FH-0703537FL_PBMC-0806629FH-0204189HL_PBMC-1500689HH-1104677FL_PBMC-9700916HH-1410331FL.drop.qc.adt.integ.clean.rds")
+data <- readRDS("testdataset.drop.qc.adt.integ.clean.rds")
 
-ref2 <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/Ref_annotation/AML_downsampled_ref_fixed_with_umap.rds")
+ref2 <- readRDS("AML_downsampled_ref_fixed_with_umap.rds")
 
 #rename row to have gene name instead of "features"
 features <- read.delim("ref_annotation/matrix_files/features.tsv.gz",

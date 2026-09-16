@@ -23,7 +23,7 @@ set.seed(123)
 
 # import RDS file
 ```{r}
-poolA_et_B <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/aml2ndaire/aml_2nd rds/020_010_042_025_008_034_095_017_filtered_with_adt.rds")
+poolA_et_B <- readRDS("data_filtered_with_adt.rds")
 ```
 
 # Ajouter les metadata biologiques
@@ -113,7 +113,7 @@ table(poolA_et_B$response)
 ```
 
 ```{r}
-saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt.rds")
+saveRDS(poolA_et_B, file = "data_filtered_with_adt.rds")
 ```
 
 # QC (quality control)
@@ -140,7 +140,7 @@ FeatureScatter(poolA_et_B, "nCount_RNA", "percent.ribo")
 ```
 
 ```{r}
-saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt_qc.rds")
+saveRDS(poolA_et_B, file = "data_filtered_with_adt_qc.rds")
 ```
 
 # filtering + joinlayer
@@ -195,5 +195,5 @@ table(poolA_et_B$orig.ident)
 #save
 
 ```{r}
-saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop.rds")
+saveRDS(poolA_et_B, file = "data_filtered_with_adt_qc_outlierdrop.rds")
 ```

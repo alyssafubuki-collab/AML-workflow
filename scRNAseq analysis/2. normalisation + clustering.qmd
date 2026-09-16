@@ -12,7 +12,7 @@ library(scuttle)
 ```
 
 ```{r}
-poolA_et_B <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/aml2ndaire/020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop.rds")
+poolA_et_B <- readRDS("data_filtered_with_adt_qc_outlierdrop.rds")
 ```
 
 ## Normalisation
@@ -314,5 +314,5 @@ ggsave( "umap_timepoint_per_response_0_8.jpeg", umap_timepoint_per_response, wid
 
 #save
 ```{r}
-saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred.rds")
+saveRDS(poolA_et_B, file = "data_filtered_with_adt_qc_outlierdrop_norm_dimred.rds")
 ```

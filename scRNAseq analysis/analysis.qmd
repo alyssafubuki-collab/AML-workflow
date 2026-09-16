@@ -15,7 +15,7 @@ set.seed(123)
 ```
 
 ```{r}
-poolA_et_B <-  readRDS("020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt.rds")
+poolA_et_B <-  readRDS("data_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt.rds")
 ```
 
 ```{r}
@@ -64,7 +64,7 @@ table(poolA_et_B_downsampled$patient)
 table(poolA_et_B$orig.ident)
 
 #save
-saveRDS(poolA_et_B_downsampled, file = "downsampled_020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt_13_04.rds")
+saveRDS(poolA_et_B_downsampled, file = "downsampled_data_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt_13_04.rds")
 ```
 
 ```{r}
@@ -125,7 +125,7 @@ write.csv(nbrcelltimpoint, "nbr_cell_timepoint.csv")
 # reannotation
 
 ```{r}
-ref <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/Ref_annotation/AML_downsampled_ref_fixed2_with_umap.rds")
+ref <- readRDS("AML_downsampled_ref_fixed2_with_umap.rds")
 ```
 
 ```{r}
@@ -2862,9 +2862,9 @@ library("ggplot2")
 library('viridis')
 library('pheatmap')
 
-ref <- readRDS("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/Ref_annotation/AML_downsampled_ref_fixed2_with_umap.rds")
+ref <- readRDS("AML_downsampled_ref_fixed2_with_umap.rds")
 
-pool_focus <- readRDS("pool_focus_020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt_newannot_23_04.rds")
+pool_focus <- readRDS("pool_focus_data_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt_newannot_23_04.rds")
 ```
 
 ```{r}
@@ -3123,7 +3123,7 @@ VlnPlot(pool_focus2, features = c("THY1",
 ```
 
 ```{r}
-saveRDS(pool_focus2, file = "pool_focus2_020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt_newannot_05_05.rds")
+saveRDS(pool_focus2, file = "pool_focus2_data_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt_newannot_05_05.rds")
 ```
 
 ```{r}
@@ -3171,7 +3171,7 @@ annot2 <- DimPlot(
 ```
 
 ```{r}
-saveRDS(pool_focus2, file = "pool_focus2_020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt_newannot_04_05.rds")
+saveRDS(pool_focus2, file = "pool_focus2_data_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt_newannot_04_05.rds")
 ```
 
 #renamed cluster
@@ -3618,7 +3618,7 @@ VlnPlot(pool_focus2, features = c("CDK6", "CPXM1", "SOCS2", "SMIM24", "EMP1", "N
 # clustering pre ttt uniquement
 
 ```{r}
-pool2 <- readRDS(("O:/Equipes_PF_Services/EQ_Duprez/EQ_Duprez/Current Lab Members/Chellal Alyssa/aml2ndaire/aml_2nd rds/020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop.rds"))
+pool2 <- readRDS(("data_filtered_with_adt_qc_outlierdrop.rds"))
 
 # 1. Préparation de l'objet unique (Assay 5)
 # Au lieu de SplitObject, on s'assure que les données sont dans des layers séparés
@@ -3860,5 +3860,5 @@ DimPlot(pool_pre, reduction = "umap.cca02")
 #save
 
 ```{r}
-saveRDS(poolA_et_B, file = "020_010_042_025_008_034_095_017_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt_06_04.rds")
+saveRDS(poolA_et_B, file = "data_filtered_with_adt_qc_outlierdrop_norm_dimred_annot_sex_phase_adt_06_04.rds")
 ```
